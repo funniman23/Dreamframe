@@ -450,15 +450,14 @@
       btn.disabled = true;
       loader.classList.add('active');
       img.style.display = 'none';
+      img.src = '';
       placeholder.style.display = 'none';
 
       const seed = Math.floor(Math.random() * 999999);
       const encodedPrompt = encodeURIComponent(prompt);
       const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?model=${model}&width=${width}&height=${height}&seed=${seed}&nologo=true`;
 
-      const tempImg = new Image();
-      tempImg.onload = () => {
-        img.src = url;
+      img.onload = () => {
         img.style.display = 'block';
         loader.classList.remove('active');
         btn.disabled = false;
@@ -466,13 +465,13 @@
         dlBtn.href = url;
         dlBtn.classList.add('visible');
       };
-      tempImg.onerror = () => {
+      img.onerror = () => {
         loader.classList.remove('active');
         placeholder.style.display = 'flex';
         btn.disabled = false;
         errorMsg.classList.add('visible');
       };
-      tempImg.src = url;
+      img.src = url;
     }
 
     // Allow Enter key (Ctrl+Enter) to generate
