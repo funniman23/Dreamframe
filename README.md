@@ -4,7 +4,7 @@ A simple image generator built on the [Pollinations.ai](https://pollinations.ai)
 
 ## Live demo
 
-[funniman23.github.io/dreamframe](https://funniman23.github.io/dreamframe/)
+[funniman23.github.io/dreamframe](https://funniman23.github.io/Dreamframe/)
 
 ## What's in it
 
