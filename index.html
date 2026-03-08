@@ -29,7 +29,6 @@
       overflow-x: hidden;
     }
 
-    /* Grain texture overlay */
     body::before {
       content: '';
       position: fixed;
@@ -40,7 +39,6 @@
       opacity: 0.4;
     }
 
-    /* Decorative rule lines */
     .rule-top {
       width: 100%;
       max-width: 680px;
@@ -75,10 +73,7 @@
       margin-bottom: 14px;
     }
 
-    h1 em {
-      font-style: italic;
-      color: var(--accent);
-    }
+    h1 em { font-style: italic; color: var(--accent); }
 
     .subtitle {
       font-size: 11px;
@@ -94,7 +89,111 @@
       margin: 20px auto;
     }
 
-    /* Input area */
+    /* ── Auth gate ── */
+    #auth-gate {
+      width: 100%;
+      max-width: 680px;
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      text-align: center;
+    }
+
+    .auth-box {
+      border: 1.5px solid var(--ink);
+      padding: 40px 48px;
+      width: 100%;
+    }
+
+    .auth-box p {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.8;
+      letter-spacing: 0.05em;
+      margin-bottom: 28px;
+    }
+
+    .connect-btn {
+      display: inline-block;
+      background: var(--ink);
+      color: var(--paper);
+      border: none;
+      padding: 14px 32px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+
+    .connect-btn:hover { background: var(--accent); }
+
+    .auth-note {
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    /* ── Main app (hidden until authed) ── */
+    #app {
+      width: 100%;
+      display: contents;
+    }
+
+    #app.hidden { display: none; }
+
+    /* ── Session bar ── */
+    .session-bar {
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .session-status {
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .session-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #5a9e6f;
+      display: inline-block;
+    }
+
+    .disconnect-btn {
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1px;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .disconnect-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+    /* ── Input area ── */
     .input-section {
       width: 100%;
       max-width: 680px;
@@ -144,19 +243,17 @@
       letter-spacing: 0.2em;
       text-transform: uppercase;
       cursor: pointer;
-      transition: background 0.2s, color 0.2s;
+      transition: background 0.2s;
       min-width: 110px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
     }
 
     .gen-btn:hover { background: var(--accent); }
     .gen-btn:active { transform: scale(0.98); }
     .gen-btn:disabled { background: var(--muted); cursor: not-allowed; }
 
-    /* Options row */
     .options-row {
       display: flex;
       gap: 16px;
@@ -193,7 +290,7 @@
       background-position: right 8px center;
     }
 
-    /* Canvas / result */
+    /* ── Canvas ── */
     .canvas-area {
       width: 100%;
       max-width: 680px;
@@ -212,10 +309,7 @@
       justify-content: center;
     }
 
-    .placeholder-text {
-      text-align: center;
-      color: var(--muted);
-    }
+    .placeholder-text { text-align: center; color: var(--muted); }
 
     .placeholder-text .big {
       font-family: 'Playfair Display', serif;
@@ -246,7 +340,6 @@
       to   { opacity: 1; transform: scale(1); }
     }
 
-    /* Loading spinner */
     .loader {
       display: none;
       position: absolute;
@@ -310,7 +403,6 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* Caption / meta row */
     .meta-row {
       display: flex;
       justify-content: space-between;
@@ -345,7 +437,6 @@
     .download-btn:hover { color: var(--accent); border-color: var(--accent); }
     .download-btn.visible { display: inline; }
 
-    /* Footer */
     footer {
       margin-top: 60px;
       text-align: center;
@@ -376,7 +467,6 @@
       z-index: 1;
     }
 
-    /* Error message */
     .error-msg {
       font-size: 11px;
       color: var(--accent);
@@ -398,61 +488,83 @@
     <p class="subtitle">Type a thought — receive an image</p>
   </header>
 
-  <div class="input-section">
-    <label class="input-label" for="prompt-input">Your Prompt</label>
-    <div class="input-row">
-      <textarea
-        id="prompt-input"
-        placeholder="a solitary lighthouse on a cliff at dusk, oil painting style…"
-      ></textarea>
-      <button class="gen-btn" id="gen-btn" onclick="generate()">
-        <span id="btn-label">Generate</span>
-      </button>
+  <!-- Auth gate (shown when no key) -->
+  <div id="auth-gate">
+    <div class="auth-box">
+      <p>Sign in with your Pollinations account to generate images.<br>Your usage, your pollen — this app pays nothing.</p>
+      <button class="connect-btn" onclick="connectPollinations()">Connect with Pollinations</button>
     </div>
-
-    <div class="options-row">
-      <div class="option-group">
-        <label>Model</label>
-        <select id="model-select">
-          <option value="flux">Flux</option>
-          <option value="turbo">Turbo</option>
-          <option value="flux-realism">Flux Realism</option>
-          <option value="flux-anime">Flux Anime</option>
-          <option value="flux-3d">Flux 3D</option>
-        </select>
-      </div>
-      <div class="option-group">
-        <label>Size</label>
-        <select id="size-select">
-          <option value="1024x1024">1024 × 1024</option>
-          <option value="1280x720">1280 × 720</option>
-          <option value="720x1280">720 × 1280</option>
-          <option value="512x512">512 × 512</option>
-        </select>
-      </div>
-    </div>
-    <p class="error-msg" id="error-msg">Something went wrong. Please try again.</p>
+    <p class="auth-note">Free to use &nbsp;·&nbsp; No credit card &nbsp;·&nbsp; Revoke anytime</p>
   </div>
 
-  <div class="canvas-area">
-    <div class="canvas-frame" id="canvas-frame">
-      <div class="placeholder-text" id="placeholder">
-        <span class="big">✦</span>
-        <span class="small">Your image will appear here</span>
-      </div>
-      <div class="loader" id="loader">
-        <div class="spinner"></div>
-        <p class="loader-text" id="loader-text">Generating…</p>
-        <div class="status-bar"><div class="status-bar-fill"></div></div>
-        <p class="status-elapsed" id="status-elapsed">0s</p>
-      </div>
-      <img id="result-img" alt="Generated image" />
+  <!-- Main app (shown when key present) -->
+  <div id="app" class="hidden">
+
+    <div class="session-bar">
+      <span class="session-status">
+        <span class="session-dot"></span>
+        Connected to Pollinations
+      </span>
+      <button class="disconnect-btn" onclick="disconnect()">Disconnect</button>
     </div>
-    <div class="meta-row">
-      <span class="prompt-caption" id="prompt-caption">—</span>
-      <a class="download-btn" id="download-btn" download="dreamframe.jpg">↓ Save</a>
+
+    <div class="input-section">
+      <label class="input-label" for="prompt-input">Your Prompt</label>
+      <div class="input-row">
+        <textarea
+          id="prompt-input"
+          placeholder="a solitary lighthouse on a cliff at dusk, oil painting style…"
+        ></textarea>
+        <button class="gen-btn" id="gen-btn" onclick="generate()">
+          Generate
+        </button>
+      </div>
+
+      <div class="options-row">
+        <div class="option-group">
+          <label>Model</label>
+          <select id="model-select">
+            <option value="flux">Flux</option>
+            <option value="turbo">Turbo</option>
+            <option value="flux-realism">Flux Realism</option>
+            <option value="flux-anime">Flux Anime</option>
+            <option value="flux-3d">Flux 3D</option>
+          </select>
+        </div>
+        <div class="option-group">
+          <label>Size</label>
+          <select id="size-select">
+            <option value="1024x1024">1024 × 1024</option>
+            <option value="1280x720">1280 × 720</option>
+            <option value="720x1280">720 × 1280</option>
+            <option value="512x512">512 × 512</option>
+          </select>
+        </div>
+      </div>
+      <p class="error-msg" id="error-msg">Something went wrong. Please try again.</p>
     </div>
-  </div>
+
+    <div class="canvas-area">
+      <div class="canvas-frame">
+        <div class="placeholder-text" id="placeholder">
+          <span class="big">✦</span>
+          <span class="small">Your image will appear here</span>
+        </div>
+        <div class="loader" id="loader">
+          <div class="spinner"></div>
+          <p class="loader-text" id="loader-text">Generating…</p>
+          <div class="status-bar"><div class="status-bar-fill"></div></div>
+          <p class="status-elapsed" id="status-elapsed">0s</p>
+        </div>
+        <img id="result-img" alt="Generated image" />
+      </div>
+      <div class="meta-row">
+        <span class="prompt-caption" id="prompt-caption">—</span>
+        <a class="download-btn" id="download-btn" download="dreamframe.jpg">↓ Save</a>
+      </div>
+    </div>
+
+  </div><!-- /app -->
 
   <div class="rule-bottom"></div>
 
@@ -462,6 +574,49 @@
   </footer>
 
   <script>
+    // ── Auth ──────────────────────────────────────────────
+
+    let apiKey = null;
+
+    function getKey() {
+      // Check URL fragment first (just came back from auth)
+      const hash = new URLSearchParams(location.hash.slice(1));
+      const keyFromHash = hash.get('api_key');
+      if (keyFromHash) {
+        sessionStorage.setItem('pollen_key', keyFromHash);
+        // Clean the key out of the URL without a page reload
+        history.replaceState(null, '', location.pathname + location.search);
+        return keyFromHash;
+      }
+      return sessionStorage.getItem('pollen_key');
+    }
+
+    function connectPollinations() {
+      const params = new URLSearchParams({
+        redirect_url: location.href.split('#')[0],
+      });
+      window.location.href = `https://enter.pollinations.ai/authorize?${params}`;
+    }
+
+    function disconnect() {
+      sessionStorage.removeItem('pollen_key');
+      apiKey = null;
+      document.getElementById('auth-gate').style.display = '';
+      document.getElementById('app').classList.add('hidden');
+    }
+
+    function init() {
+      apiKey = getKey();
+      if (apiKey) {
+        document.getElementById('auth-gate').style.display = 'none';
+        document.getElementById('app').classList.remove('hidden');
+      }
+    }
+
+    init();
+
+    // ── Timer ─────────────────────────────────────────────
+
     let elapsedTimer = null;
 
     function startTimer() {
@@ -479,10 +634,7 @@
         const s = Math.floor((Date.now() - start) / 1000);
         el.textContent = s + 's';
         for (let i = messages.length - 1; i >= 0; i--) {
-          if (s >= messages[i][0]) {
-            loaderText.textContent = messages[i][1];
-            break;
-          }
+          if (s >= messages[i][0]) { loaderText.textContent = messages[i][1]; break; }
         }
       }, 500);
     }
@@ -492,23 +644,24 @@
       elapsedTimer = null;
     }
 
+    // ── Generate ──────────────────────────────────────────
+
     function generate() {
       const prompt = document.getElementById('prompt-input').value.trim();
       if (!prompt) return;
 
-      const model = document.getElementById('model-select').value;
-      const size  = document.getElementById('size-select').value;
+      const model  = document.getElementById('model-select').value;
+      const size   = document.getElementById('size-select').value;
       const [width, height] = size.split('x');
 
-      const btn       = document.getElementById('gen-btn');
-      const loader    = document.getElementById('loader');
-      const img       = document.getElementById('result-img');
+      const btn         = document.getElementById('gen-btn');
+      const loader      = document.getElementById('loader');
+      const img         = document.getElementById('result-img');
       const placeholder = document.getElementById('placeholder');
-      const errorMsg  = document.getElementById('error-msg');
-      const caption   = document.getElementById('prompt-caption');
-      const dlBtn     = document.getElementById('download-btn');
+      const errorMsg    = document.getElementById('error-msg');
+      const caption     = document.getElementById('prompt-caption');
+      const dlBtn       = document.getElementById('download-btn');
 
-      // Reset
       errorMsg.classList.remove('visible');
       btn.disabled = true;
       loader.classList.add('active');
@@ -519,7 +672,7 @@
 
       const seed = Math.floor(Math.random() * 999999);
       const encodedPrompt = encodeURIComponent(prompt);
-      const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?model=${model}&width=${width}&height=${height}&seed=${seed}&nologo=true`;
+      const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?model=${model}&width=${width}&height=${height}&seed=${seed}&nologo=true&token=${apiKey}`;
 
       img.onload = () => {
         stopTimer();
@@ -540,8 +693,7 @@
       img.src = url;
     }
 
-    // Allow Enter key (Ctrl+Enter) to generate
-    document.getElementById('prompt-input').addEventListener('keydown', (e) => {
+    document.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') generate();
     });
   </script>
