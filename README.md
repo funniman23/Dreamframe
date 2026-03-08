@@ -41,9 +41,8 @@ Full docs at [pollinations.ai](https://pollinations.ai).
 
 Vanilla HTML, CSS, and JavaScript. Nothing else.
 
-## Built with
-
-[<img src="https://pollinations.ai/p/pollinations_ai_logo_white_text?width=200&height=50&nologo=true" alt="pollinations.ai Logo" height="30">](https://pollinations.ai)
+Built with
+Pollinations AI
 
 ## License
 
