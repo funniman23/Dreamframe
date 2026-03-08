@@ -279,6 +279,37 @@
       color: var(--muted);
     }
 
+    .status-bar {
+      width: 180px;
+      height: 2px;
+      background: var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .status-bar-fill {
+      position: absolute;
+      left: -60%;
+      top: 0;
+      height: 100%;
+      width: 60%;
+      background: var(--accent);
+      animation: slide 1.4s ease-in-out infinite;
+    }
+
+    @keyframes slide {
+      0%   { left: -60%; }
+      100% { left: 100%; }
+    }
+
+    .status-elapsed {
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      margin-top: 2px;
+      font-variant-numeric: tabular-nums;
+    }
+
     /* Caption / meta row */
     .meta-row {
       display: flex;
@@ -411,7 +442,9 @@
       </div>
       <div class="loader" id="loader">
         <div class="spinner"></div>
-        <p class="loader-text">Dreaming…</p>
+        <p class="loader-text" id="loader-text">Generating…</p>
+        <div class="status-bar"><div class="status-bar-fill"></div></div>
+        <p class="status-elapsed" id="status-elapsed">0s</p>
       </div>
       <img id="result-img" alt="Generated image" />
     </div>
@@ -429,6 +462,36 @@
   </footer>
 
   <script>
+    let elapsedTimer = null;
+
+    function startTimer() {
+      const el = document.getElementById('status-elapsed');
+      const loaderText = document.getElementById('loader-text');
+      const start = Date.now();
+      const messages = [
+        [0,  'Generating…'],
+        [5,  'Still working…'],
+        [15, 'Almost there…'],
+        [30, 'Taking a bit longer than usual…'],
+      ];
+      el.textContent = '0s';
+      elapsedTimer = setInterval(() => {
+        const s = Math.floor((Date.now() - start) / 1000);
+        el.textContent = s + 's';
+        for (let i = messages.length - 1; i >= 0; i--) {
+          if (s >= messages[i][0]) {
+            loaderText.textContent = messages[i][1];
+            break;
+          }
+        }
+      }, 500);
+    }
+
+    function stopTimer() {
+      clearInterval(elapsedTimer);
+      elapsedTimer = null;
+    }
+
     function generate() {
       const prompt = document.getElementById('prompt-input').value.trim();
       if (!prompt) return;
@@ -452,12 +515,14 @@
       img.style.display = 'none';
       img.src = '';
       placeholder.style.display = 'none';
+      startTimer();
 
       const seed = Math.floor(Math.random() * 999999);
       const encodedPrompt = encodeURIComponent(prompt);
       const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?model=${model}&width=${width}&height=${height}&seed=${seed}&nologo=true`;
 
       img.onload = () => {
+        stopTimer();
         img.style.display = 'block';
         loader.classList.remove('active');
         btn.disabled = false;
@@ -466,6 +531,7 @@
         dlBtn.classList.add('visible');
       };
       img.onerror = () => {
+        stopTimer();
         loader.classList.remove('active');
         placeholder.style.display = 'flex';
         btn.disabled = false;
