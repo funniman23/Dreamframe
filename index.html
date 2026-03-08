@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dreamframe — AI Image Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink: #0e0c0a;
+      --paper: #f5f0e8;
+      --accent: #c8502a;
+      --muted: #9b9288;
+      --border: #d4cfc6;
+    }
+
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 20px 80px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Grain texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    /* Decorative rule lines */
+    .rule-top {
+      width: 100%;
+      max-width: 680px;
+      border-top: 2px solid var(--ink);
+      border-bottom: 1px solid var(--ink);
+      height: 6px;
+      margin-bottom: 40px;
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 50px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .kicker {
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.8rem, 7vw, 5rem);
+      line-height: 0.95;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+    }
+
+    h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .subtitle {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .divider {
+      width: 40px;
+      height: 1px;
+      background: var(--muted);
+      margin: 20px auto;
+    }
+
+    /* Input area */
+    .input-section {
+      width: 100%;
+      max-width: 680px;
+      position: relative;
+      z-index: 1;
+      margin-bottom: 32px;
+    }
+
+    .input-label {
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 0;
+      border: 1.5px solid var(--ink);
+    }
+
+    textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      padding: 16px 18px;
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      color: var(--ink);
+      resize: none;
+      height: 80px;
+      line-height: 1.6;
+    }
+
+    textarea::placeholder { color: var(--muted); }
+
+    .gen-btn {
+      background: var(--ink);
+      color: var(--paper);
+      border: none;
+      padding: 0 28px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      min-width: 110px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .gen-btn:hover { background: var(--accent); }
+    .gen-btn:active { transform: scale(0.98); }
+    .gen-btn:disabled { background: var(--muted); cursor: not-allowed; }
+
+    /* Options row */
+    .options-row {
+      display: flex;
+      gap: 16px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .option-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .option-group label {
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    select {
+      background: transparent;
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--ink);
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      padding-right: 24px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%230e0c0a'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+    }
+
+    /* Canvas / result */
+    .canvas-area {
+      width: 100%;
+      max-width: 680px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .canvas-frame {
+      border: 1.5px solid var(--ink);
+      aspect-ratio: 1;
+      overflow: hidden;
+      position: relative;
+      background: #e8e2d8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .placeholder-text {
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .placeholder-text .big {
+      font-family: 'Playfair Display', serif;
+      font-size: 3rem;
+      font-style: italic;
+      display: block;
+      margin-bottom: 8px;
+      opacity: 0.3;
+    }
+
+    .placeholder-text .small {
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      opacity: 0.5;
+    }
+
+    #result-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+      animation: fadeIn 0.6s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(1.02); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* Loading spinner */
+    .loader {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: rgba(245,240,232,0.85);
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      z-index: 2;
+    }
+
+    .loader.active { display: flex; }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loader-text {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* Caption / meta row */
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .prompt-caption {
+      font-size: 11px;
+      color: var(--muted);
+      font-style: italic;
+      max-width: 500px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .download-btn {
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink);
+      text-decoration: none;
+      border-bottom: 1px solid var(--ink);
+      padding-bottom: 1px;
+      display: none;
+      transition: color 0.2s;
+    }
+
+    .download-btn:hover { color: var(--accent); border-color: var(--accent); }
+    .download-btn.visible { display: inline; }
+
+    /* Footer */
+    footer {
+      margin-top: 60px;
+      text-align: center;
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      position: relative;
+      z-index: 1;
+    }
+
+    footer a {
+      color: var(--ink);
+      text-decoration: none;
+      border-bottom: 1px solid var(--border);
+    }
+
+    footer a:hover { color: var(--accent); }
+
+    .rule-bottom {
+      width: 100%;
+      max-width: 680px;
+      border-top: 1px solid var(--ink);
+      border-bottom: 2px solid var(--ink);
+      height: 6px;
+      margin-top: 40px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Error message */
+    .error-msg {
+      font-size: 11px;
+      color: var(--accent);
+      margin-top: 8px;
+      letter-spacing: 0.05em;
+      display: none;
+    }
+    .error-msg.visible { display: block; }
+  </style>
+</head>
+<body>
+
+  <div class="rule-top"></div>
+
+  <header>
+    <p class="kicker">Powered by Pollinations.ai</p>
+    <h1>Dream<em>frame</em></h1>
+    <div class="divider"></div>
+    <p class="subtitle">Type a thought — receive an image</p>
+  </header>
+
+  <div class="input-section">
+    <label class="input-label" for="prompt-input">Your Prompt</label>
+    <div class="input-row">
+      <textarea
+        id="prompt-input"
+        placeholder="a solitary lighthouse on a cliff at dusk, oil painting style…"
+      ></textarea>
+      <button class="gen-btn" id="gen-btn" onclick="generate()">
+        <span id="btn-label">Generate</span>
+      </button>
+    </div>
+
+    <div class="options-row">
+      <div class="option-group">
+        <label>Model</label>
+        <select id="model-select">
+          <option value="flux">Flux</option>
+          <option value="turbo">Turbo</option>
+          <option value="flux-realism">Flux Realism</option>
+          <option value="flux-anime">Flux Anime</option>
+          <option value="flux-3d">Flux 3D</option>
+        </select>
+      </div>
+      <div class="option-group">
+        <label>Size</label>
+        <select id="size-select">
+          <option value="1024x1024">1024 × 1024</option>
+          <option value="1280x720">1280 × 720</option>
+          <option value="720x1280">720 × 1280</option>
+          <option value="512x512">512 × 512</option>
+        </select>
+      </div>
+    </div>
+    <p class="error-msg" id="error-msg">Something went wrong. Please try again.</p>
+  </div>
+
+  <div class="canvas-area">
+    <div class="canvas-frame" id="canvas-frame">
+      <div class="placeholder-text" id="placeholder">
+        <span class="big">✦</span>
+        <span class="small">Your image will appear here</span>
+      </div>
+      <div class="loader" id="loader">
+        <div class="spinner"></div>
+        <p class="loader-text">Dreaming…</p>
+      </div>
+      <img id="result-img" alt="Generated image" />
+    </div>
+    <div class="meta-row">
+      <span class="prompt-caption" id="prompt-caption">—</span>
+      <a class="download-btn" id="download-btn" download="dreamframe.jpg">↓ Save</a>
+    </div>
+  </div>
+
+  <div class="rule-bottom"></div>
+
+  <footer>
+    Built with <a href="https://pollinations.ai" target="_blank">pollinations.ai</a>
+    &nbsp;·&nbsp; Free &amp; Open API
+  </footer>
+
+  <script>
+    function generate() {
+      const prompt = document.getElementById('prompt-input').value.trim();
+      if (!prompt) return;
+
+      const model = document.getElementById('model-select').value;
+      const size  = document.getElementById('size-select').value;
+      const [width, height] = size.split('x');
+
+      const btn       = document.getElementById('gen-btn');
+      const loader    = document.getElementById('loader');
+      const img       = document.getElementById('result-img');
+      const placeholder = document.getElementById('placeholder');
+      const errorMsg  = document.getElementById('error-msg');
+      const caption   = document.getElementById('prompt-caption');
+      const dlBtn     = document.getElementById('download-btn');
+
+      // Reset
+      errorMsg.classList.remove('visible');
+      btn.disabled = true;
+      loader.classList.add('active');
+      img.style.display = 'none';
+      placeholder.style.display = 'none';
+
+      const seed = Math.floor(Math.random() * 999999);
+      const encodedPrompt = encodeURIComponent(prompt);
+      const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?model=${model}&width=${width}&height=${height}&seed=${seed}&nologo=true`;
+
+      const tempImg = new Image();
+      tempImg.onload = () => {
+        img.src = url;
+        img.style.display = 'block';
+        loader.classList.remove('active');
+        btn.disabled = false;
+        caption.textContent = prompt;
+        dlBtn.href = url;
+        dlBtn.classList.add('visible');
+      };
+      tempImg.onerror = () => {
+        loader.classList.remove('active');
+        placeholder.style.display = 'flex';
+        btn.disabled = false;
+        errorMsg.classList.add('visible');
+      };
+      tempImg.src = url;
+    }
+
+    // Allow Enter key (Ctrl+Enter) to generate
+    document.getElementById('prompt-input').addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') generate();
+    });
+  </script>
+</body>
+</html>
