@@ -3,700 +3,2896 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dreamframe — AI Image Generator</title>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet"/>
+  <title>Dreamframe — Test Your Pollinations API</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Syne+Mono&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --ink: #0e0c0a;
-      --paper: #f5f0e8;
-      --accent: #c8502a;
-      --muted: #9b9288;
-      --border: #d4cfc6;
+      --bg: #050508;
+      --surface: #0d0d14;
+      --surface2: #13131e;
+      --border: rgba(255,255,255,0.07);
+      --border-bright: rgba(255,255,255,0.14);
+      --text: #e8e6f0;
+      --text-dim: rgba(232,230,240,0.45);
+      --text-faint: rgba(232,230,240,0.2);
+      --accent: #7c5cfc;
+      --accent2: #e040a0;
+      --accent3: #00d8c8;
+      --glow: rgba(124,92,252,0.25);
+      --video-accent: #e040a0;
     }
 
+    html { scroll-behavior: smooth; }
+
     body {
-      background: var(--paper);
-      color: var(--ink);
-      font-family: 'DM Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 60px 20px 80px;
-      position: relative;
       overflow-x: hidden;
     }
 
+    /* ── Grid background ── */
     body::before {
       content: '';
       position: fixed;
       inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      background-image:
+        linear-gradient(rgba(124,92,252,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124,92,252,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
       pointer-events: none;
       z-index: 0;
-      opacity: 0.4;
     }
 
-    .rule-top {
-      width: 100%;
-      max-width: 680px;
-      border-top: 2px solid var(--ink);
-      border-bottom: 1px solid var(--ink);
-      height: 6px;
-      margin-bottom: 40px;
-      position: relative;
-      z-index: 1;
+    /* ── Ambient blobs ── */
+    .ambient {
+      position: fixed;
+      pointer-events: none;
+      z-index: 0;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.12;
+    }
+    .ambient-1 { width: 500px; height: 500px; background: var(--accent); top: -100px; left: -100px; }
+    .ambient-2 { width: 400px; height: 400px; background: var(--accent2); bottom: -100px; right: -100px; }
+    .ambient-3 { width: 300px; height: 300px; background: var(--accent3); top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.05; }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      height: 60px;
+      background: rgba(5,5,8,0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
     }
 
-    header {
-      text-align: center;
-      margin-bottom: 50px;
-      position: relative;
-      z-index: 1;
+    .nav-logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.2rem;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
-    .kicker {
+    .nav-logo span { -webkit-text-fill-color: var(--text-dim); font-weight: 400; }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .nav-badge {
+      font-family: 'Syne Mono', monospace;
       font-size: 10px;
-      letter-spacing: 0.25em;
+      letter-spacing: 0.1em;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+    }
+
+    .nav-badge.connected {
+      border-color: rgba(0,216,200,0.4);
+      color: var(--accent3);
+      background: rgba(0,216,200,0.06);
+    }
+
+    .btn-ghost {
+      font-family: 'Syne Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      padding: 7px 16px;
+      border: 1px solid var(--border-bright);
+      background: transparent;
+      color: var(--text-dim);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Hero / above-fold ── */
+    .hero {
+      position: relative;
+      z-index: 1;
+      padding: 120px 32px 60px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .hero-eyebrow {
+      font-family: 'Syne Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      color: var(--accent);
       text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 12px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hero-eyebrow::before {
+      content: '';
+      display: inline-block;
+      width: 24px;
+      height: 1px;
+      background: var(--accent);
     }
 
     h1 {
-      font-family: 'Playfair Display', serif;
-      font-size: clamp(2.8rem, 7vw, 5rem);
-      line-height: 0.95;
-      letter-spacing: -0.02em;
-      margin-bottom: 14px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(2.6rem, 6vw, 4.5rem);
+      line-height: 1.0;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
     }
 
-    h1 em { font-style: italic; color: var(--accent); }
-
-    .subtitle {
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      color: var(--muted);
-      text-transform: uppercase;
+    h1 .line2 {
+      background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-size: 200% 100%;
+      animation: gradient-shift 6s ease infinite;
     }
 
-    .divider {
-      width: 40px;
-      height: 1px;
-      background: var(--muted);
-      margin: 20px auto;
+    @keyframes gradient-shift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
     }
 
-    /* ── Auth gate ── */
-    #auth-gate {
-      width: 100%;
-      max-width: 680px;
-      position: relative;
-      z-index: 1;
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-dim);
+      line-height: 1.7;
+      max-width: 480px;
+      margin-bottom: 36px;
+    }
+
+    /* ── Mode selector ── */
+    .mode-tabs {
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 20px;
-      text-align: center;
-    }
-
-    .auth-box {
-      border: 1.5px solid var(--ink);
-      padding: 40px 48px;
-      width: 100%;
-    }
-
-    .auth-box p {
-      font-size: 11px;
-      color: var(--muted);
-      line-height: 1.8;
-      letter-spacing: 0.05em;
-      margin-bottom: 28px;
-    }
-
-    .connect-btn {
-      display: inline-block;
-      background: var(--ink);
-      color: var(--paper);
-      border: none;
-      padding: 14px 32px;
-      font-family: 'DM Mono', monospace;
-      font-size: 10px;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      cursor: pointer;
-      text-decoration: none;
-      transition: background 0.2s;
-    }
-
-    .connect-btn:hover { background: var(--accent); }
-
-    .auth-note {
-      font-size: 9px;
-      letter-spacing: 0.12em;
-      color: var(--muted);
-      text-transform: uppercase;
-    }
-
-    /* ── Main app (hidden until authed) ── */
-    #app {
-      width: 100%;
-      display: contents;
-    }
-
-    #app.hidden { display: none; }
-
-    /* ── Session bar ── */
-    .session-bar {
-      width: 100%;
-      max-width: 680px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 24px;
-      position: relative;
-      z-index: 1;
-    }
-
-    .session-status {
-      font-size: 9px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--muted);
-      display: flex;
-      align-items: center;
-      gap: 7px;
-    }
-
-    .session-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #5a9e6f;
-      display: inline-block;
-    }
-
-    .disconnect-btn {
-      font-size: 9px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--muted);
-      background: none;
-      border: none;
-      cursor: pointer;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 1px;
-      font-family: 'DM Mono', monospace;
-    }
-
-    .disconnect-btn:hover { color: var(--accent); border-color: var(--accent); }
-
-    /* ── Input area ── */
-    .input-section {
-      width: 100%;
-      max-width: 680px;
-      position: relative;
-      z-index: 1;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      background: var(--surface);
+      width: fit-content;
       margin-bottom: 32px;
     }
 
-    .input-label {
-      font-size: 9px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 8px;
-      display: block;
-    }
-
-    .input-row {
-      display: flex;
-      gap: 0;
-      border: 1.5px solid var(--ink);
-    }
-
-    textarea {
-      flex: 1;
+    .mode-tab {
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      padding: 10px 22px;
+      border-radius: 7px;
+      border: none;
       background: transparent;
-      border: none;
-      outline: none;
-      padding: 16px 18px;
-      font-family: 'DM Mono', monospace;
-      font-size: 13px;
-      color: var(--ink);
-      resize: none;
-      height: 80px;
-      line-height: 1.6;
-    }
-
-    textarea::placeholder { color: var(--muted); }
-
-    .gen-btn {
-      background: var(--ink);
-      color: var(--paper);
-      border: none;
-      padding: 0 28px;
-      font-family: 'DM Mono', monospace;
-      font-size: 10px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
+      color: var(--text-dim);
       cursor: pointer;
-      transition: background 0.2s;
-      min-width: 110px;
+      transition: all 0.2s;
       display: flex;
       align-items: center;
-      justify-content: center;
+      gap: 8px;
     }
 
-    .gen-btn:hover { background: var(--accent); }
-    .gen-btn:active { transform: scale(0.98); }
-    .gen-btn:disabled { background: var(--muted); cursor: not-allowed; }
+    .mode-tab .icon { font-size: 14px; }
 
-    .options-row {
+    .mode-tab.active {
+      background: var(--surface2);
+      color: var(--text);
+      box-shadow: 0 0 0 1px var(--border-bright);
+    }
+
+    .mode-tab[data-mode="video"].active { color: var(--video-accent); }
+    .mode-tab[data-mode="video"].active .icon { filter: none; }
+
+    /* ── Auth pills ── */
+    .auth-pills {
       display: flex;
-      gap: 16px;
-      margin-top: 12px;
+      gap: 10px;
+      margin-bottom: 32px;
       flex-wrap: wrap;
     }
 
-    .option-group {
+    .pill {
       display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .option-group label {
-      font-size: 9px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    select {
-      background: transparent;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 8px;
       border: 1px solid var(--border);
-      padding: 6px 10px;
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      color: var(--ink);
+      font-size: 12px;
       cursor: pointer;
-      outline: none;
-      appearance: none;
-      padding-right: 24px;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%230e0c0a'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 8px center;
+      transition: all 0.2s;
+      background: var(--surface);
     }
 
-    /* ── Canvas ── */
-    .canvas-area {
-      width: 100%;
-      max-width: 680px;
+    .pill:hover { border-color: var(--border-bright); }
+
+    .pill.active-guest {
+      border-color: rgba(0,216,200,0.4);
+      background: rgba(0,216,200,0.06);
+      color: var(--accent3);
+    }
+
+    .pill.active-byop {
+      border-color: rgba(124,92,252,0.5);
+      background: rgba(124,92,252,0.08);
+      color: var(--accent);
+    }
+
+    .pill-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* ── Studio / main layout ── */
+    .studio {
       position: relative;
       z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 32px 100px;
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 24px;
+      align-items: start;
     }
 
-    .canvas-frame {
-      border: 1.5px solid var(--ink);
-      aspect-ratio: 1;
-      overflow: hidden;
+    @media (max-width: 900px) {
+      .studio { grid-template-columns: 1fr; }
+    }
+
+    /* ── Left panel: canvas ── */
+    .canvas-panel {
+      position: sticky;
+      top: 80px;
+    }
+
+    .canvas-wrap {
       position: relative;
-      background: #e8e2d8;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      aspect-ratio: 1 / 1;
+      transition: aspect-ratio 0.4s ease;
+    }
+
+    .canvas-wrap.landscape { aspect-ratio: 16/9; }
+    .canvas-wrap.portrait  { aspect-ratio: 9/16; }
+    .canvas-wrap.widescreen { aspect-ratio: 16/9; }
+
+    .canvas-inner {
+      position: absolute;
+      inset: 0;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    .placeholder-text { text-align: center; color: var(--muted); }
+    /* Idle state */
+    .canvas-idle {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      text-align: center;
+      padding: 32px;
+    }
 
-    .placeholder-text .big {
-      font-family: 'Playfair Display', serif;
-      font-size: 3rem;
-      font-style: italic;
+    .canvas-idle-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      background: var(--surface2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .canvas-idle-icon::after {
+      content: '';
+      position: absolute;
+      inset: -50%;
+      background: conic-gradient(transparent, var(--accent), transparent 30%);
+      animation: rotate 4s linear infinite;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .canvas-idle:hover .canvas-idle-icon::after { opacity: 1; }
+
+    @keyframes rotate { to { transform: rotate(360deg); } }
+
+    .canvas-idle-text {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    .canvas-idle-text strong {
       display: block;
-      margin-bottom: 8px;
-      opacity: 0.3;
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      color: var(--text);
+      font-weight: 600;
+      margin-bottom: 6px;
     }
 
-    .placeholder-text .small {
-      font-size: 10px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      opacity: 0.5;
-    }
-
+    /* Result image */
     #result-img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: none;
-      animation: fadeIn 0.6s ease;
+      animation: reveal 0.8s cubic-bezier(0.16,1,0.3,1);
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(1.02); }
-      to   { opacity: 1; transform: scale(1); }
-    }
-
-    .loader {
+    #result-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
       display: none;
+      animation: reveal 0.8s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    @keyframes reveal {
+      from { opacity: 0; transform: scale(1.04); filter: blur(8px); }
+      to   { opacity: 1; transform: scale(1);    filter: blur(0); }
+    }
+
+    /* Loading */
+    .canvas-loading {
       position: absolute;
       inset: 0;
-      background: rgba(245,240,232,0.85);
+      display: none;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      flex-direction: column;
-      gap: 16px;
-      z-index: 2;
+      gap: 20px;
+      background: rgba(5,5,8,0.85);
+      backdrop-filter: blur(12px);
     }
 
-    .loader.active { display: flex; }
+    .canvas-loading.active { display: flex; }
 
-    .spinner {
-      width: 36px;
-      height: 36px;
-      border: 2px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+    .loading-ring {
+      position: relative;
+      width: 64px;
+      height: 64px;
+    }
+
+    .loading-ring svg {
+      position: absolute;
+      inset: 0;
+      animation: spin 1.2s linear infinite;
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .loader-text {
-      font-size: 10px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    .status-bar {
-      width: 180px;
-      height: 2px;
-      background: var(--border);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .status-bar-fill {
-      position: absolute;
-      left: -60%;
-      top: 0;
-      height: 100%;
-      width: 60%;
-      background: var(--accent);
-      animation: slide 1.4s ease-in-out infinite;
-    }
-
-    @keyframes slide {
-      0%   { left: -60%; }
-      100% { left: 100%; }
-    }
-
-    .status-elapsed {
-      font-size: 9px;
-      letter-spacing: 0.15em;
-      color: var(--muted);
-      margin-top: 2px;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .meta-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 12px;
-      padding-top: 12px;
-      border-top: 1px solid var(--border);
-    }
-
-    .prompt-caption {
+    .loading-text {
+      font-family: 'Syne Mono', monospace;
       font-size: 11px;
-      color: var(--muted);
+      letter-spacing: 0.15em;
+      color: var(--text-dim);
+      text-align: center;
+    }
+
+    .loading-elapsed {
+      font-variant-numeric: tabular-nums;
+      font-size: 10px;
+      color: var(--text-faint);
+      font-family: 'Syne Mono', monospace;
+    }
+
+    .loading-msg {
+      font-size: 12px;
+      color: var(--text-dim);
+      text-align: center;
       font-style: italic;
-      max-width: 500px;
+      max-width: 200px;
+      line-height: 1.5;
+    }
+
+    /* Canvas toolbar */
+    .canvas-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0 0 16px 16px;
+      margin-top: -1px;
+    }
+
+    .canvas-caption {
+      font-size: 11px;
+      color: var(--text-dim);
+      font-style: italic;
+      max-width: 260px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    .download-btn {
-      font-size: 9px;
-      letter-spacing: 0.18em;
+    .canvas-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 32px; height: 32px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: all 0.15s;
+    }
+
+    .icon-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(124,92,252,0.08); }
+    .icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* ── Right panel: controls ── */
+    .controls-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--ink);
-      text-decoration: none;
-      border-bottom: 1px solid var(--ink);
-      padding-bottom: 1px;
-      display: none;
+      color: var(--text-dim);
+    }
+
+    .card-body { padding: 18px; }
+
+    /* ── Prompt area ── */
+    .prompt-wrap {
+      position: relative;
+    }
+
+    textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      color: var(--text);
+      resize: none;
+      outline: none;
+      line-height: 1.6;
+      height: 110px;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus { border-color: var(--accent); }
+    textarea::placeholder { color: var(--text-faint); }
+
+    .prompt-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+
+    .char-count {
+      font-family: 'Syne Mono', monospace;
+      font-size: 10px;
+      color: var(--text-faint);
+    }
+
+    .enhance-btn {
+      font-family: 'Syne Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: 1px solid rgba(224,64,160,0.3);
+      background: rgba(224,64,160,0.06);
+      color: var(--accent2);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .enhance-btn:hover { border-color: var(--accent2); background: rgba(224,64,160,0.12); }
+    .enhance-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Prompt tags ── */
+    .prompt-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .prompt-tag {
+      font-size: 10px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+      background: transparent;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .prompt-tag:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Settings grid ── */
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field.full { grid-column: 1 / -1; }
+
+    .field-label {
+      font-family: 'Syne Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+
+    select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      color: var(--text);
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(232,230,240,0.3)'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 28px;
+      transition: border-color 0.2s;
+    }
+
+    select:focus { border-color: var(--accent); }
+
+    /* ── Seed row ── */
+    .seed-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .seed-input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-family: 'Syne Mono', monospace;
+      font-size: 11px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .seed-input:focus { border-color: var(--accent); }
+
+    .seed-shuffle {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text-dim);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: all 0.15s;
+    }
+
+    .seed-shuffle:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Quality slider ── */
+    .range-wrap {
+      position: relative;
+    }
+
+    input[type=range] {
+      width: 100%;
+      height: 4px;
+      background: var(--surface2);
+      border-radius: 2px;
+      outline: none;
+      appearance: none;
+      cursor: pointer;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      appearance: none;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--glow);
+      cursor: pointer;
+    }
+
+    /* ── Negative prompt toggle ── */
+    .collapsible-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      padding: 10px 18px;
+      border-top: 1px solid var(--border);
+      font-family: 'Syne Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-faint);
       transition: color 0.2s;
     }
 
-    .download-btn:hover { color: var(--accent); border-color: var(--accent); }
-    .download-btn.visible { display: inline; }
+    .collapsible-toggle:hover { color: var(--text-dim); }
 
-    footer {
-      margin-top: 60px;
-      text-align: center;
-      font-size: 9px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--muted);
-      position: relative;
-      z-index: 1;
+    .collapsible-body {
+      display: none;
+      padding: 0 18px 18px;
     }
 
-    footer a {
-      color: var(--ink);
-      text-decoration: none;
-      border-bottom: 1px solid var(--border);
+    .collapsible-body.open { display: block; }
+
+    .neg-textarea {
+      height: 70px;
+      font-size: 12px;
     }
 
-    footer a:hover { color: var(--accent); }
-
-    .rule-bottom {
+    /* ── Generate button ── */
+    .gen-btn {
       width: 100%;
-      max-width: 680px;
-      border-top: 1px solid var(--ink);
-      border-bottom: 2px solid var(--ink);
-      height: 6px;
-      margin-top: 40px;
+      padding: 16px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), #5e35cc);
+      color: #fff;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.2s;
       position: relative;
-      z-index: 1;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
     }
 
-    .error-msg {
+    .gen-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .gen-btn:hover::before { opacity: 1; }
+    .gen-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 32px var(--glow); }
+    .gen-btn:active { transform: scale(0.98); }
+    .gen-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .gen-btn.video-mode { background: linear-gradient(135deg, var(--accent2), #a0005e); }
+    .gen-btn.video-mode:hover { box-shadow: 0 8px 32px rgba(224,64,160,0.3); }
+    .gen-btn.audio-mode { background: linear-gradient(135deg, var(--accent3), #007a70); }
+    .gen-btn.audio-mode:hover { box-shadow: 0 8px 32px rgba(0,216,200,0.3); }
+
+    /* ── Guest notice ── */
+    .guest-notice {
+      display: flex;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(0,216,200,0.2);
+      background: rgba(0,216,200,0.04);
       font-size: 11px;
-      color: var(--accent);
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+
+    .guest-notice-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+    .guest-notice a {
+      color: var(--accent3);
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    /* ── Gallery ── */
+    .gallery-section {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 32px 80px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.02em;
+    }
+
+    .section-count {
+      font-family: 'Syne Mono', monospace;
+      font-size: 11px;
+      color: var(--text-faint);
+    }
+
+    .gallery-clear {
+      font-family: 'Syne Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-faint);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .gallery-clear:hover { border-color: var(--accent2); color: var(--accent2); }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .gallery-item {
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      aspect-ratio: 1;
+      cursor: pointer;
+      background: var(--surface);
+    }
+
+    .gallery-item.landscape { aspect-ratio: 16/9; }
+    .gallery-item.portrait  { aspect-ratio: 9/16; }
+    .gallery-item.video-item::after {
+      content: '▶';
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(224,64,160,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      padding-left: 2px;
+    }
+
+    .gallery-item img,
+    .gallery-item video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .gallery-item-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(5,5,8,0.9) 0%, transparent 50%);
+      opacity: 0;
+      transition: opacity 0.2s;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 12px;
+    }
+
+    .gallery-item:hover .gallery-item-overlay { opacity: 1; }
+
+    .gallery-item-prompt {
+      font-size: 10px;
+      color: var(--text-dim);
+      line-height: 1.4;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .gallery-item-actions {
+      display: flex;
+      gap: 6px;
       margin-top: 8px;
-      letter-spacing: 0.05em;
+    }
+
+    .gallery-btn {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-family: 'Syne Mono', monospace;
+      transition: all 0.15s;
+    }
+
+    .gallery-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .gallery-empty {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 20px;
+      font-size: 13px;
+      color: var(--text-faint);
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+    }
+
+    .gallery-empty-icon {
+      font-size: 36px;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    /* ── Error ── */
+    .error-banner {
+      display: none;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,80,80,0.3);
+      background: rgba(255,80,80,0.06);
+      font-size: 12px;
+      color: #ff8080;
+      line-height: 1.5;
+    }
+
+    .error-banner.visible { display: block; }
+
+    /* ── Lightbox ── */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(5,5,8,0.95);
+      backdrop-filter: blur(20px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+    }
+
+    .lightbox.open { display: flex; }
+
+    .lightbox-inner {
+      position: relative;
+      max-width: 90vw;
+      max-height: 90vh;
+    }
+
+    .lightbox-inner img,
+    .lightbox-inner video {
+      max-width: 90vw;
+      max-height: 85vh;
+      border-radius: 12px;
+      display: block;
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: -44px;
+      right: 0;
+      font-size: 24px;
+      color: var(--text-dim);
+      background: none;
+      border: none;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .lightbox-close:hover { color: var(--text); }
+
+    /* ── Footer ── */
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 32px;
+      font-family: 'Syne Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      color: var(--text-faint);
+      border-top: 1px solid var(--border);
+    }
+
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { color: var(--accent2); }
+
+    /* ── BYOP modal ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 150;
+      background: rgba(5,5,8,0.9);
+      backdrop-filter: blur(16px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border-bright);
+      border-radius: 20px;
+      padding: 36px;
+      max-width: 460px;
+      width: 100%;
+    }
+
+    .modal-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 22px;
+      letter-spacing: -0.02em;
+      margin-bottom: 10px;
+    }
+
+    .modal-sub {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+
+    .modal-sub a { color: var(--accent3); text-decoration: none; }
+
+    .modal-input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border-bright);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-family: 'Syne Mono', monospace;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      margin-bottom: 16px;
+      transition: border-color 0.2s;
+    }
+
+    .modal-input:focus { border-color: var(--accent); }
+
+    .modal-btns {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-primary {
+      flex: 1;
+      padding: 13px;
+      border-radius: 10px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover { background: #8d6ffd; }
+
+    .btn-secondary {
+      flex: 1;
+      padding: 13px;
+      border-radius: 10px;
+      border: 1px solid var(--border-bright);
+      background: transparent;
+      color: var(--text-dim);
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Tooltip ── */
+    [data-tip] { position: relative; }
+
+    /* ── Video mode specifics ── */
+    .video-duration-row {
       display: none;
     }
-    .error-msg.visible { display: block; }
+    .video-duration-row.active { display: flex; }
+
+
+    /* ── Pollen Calculator ── */
+    .calc-section {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto 60px;
+      padding: 0 32px;
+    }
+
+    .calc-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .calc-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 24px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.2s;
+    }
+
+    .calc-toggle:hover { background: var(--surface2); }
+
+    .calc-toggle-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .calc-toggle-icon { font-size: 20px; }
+
+    .calc-toggle-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: -0.01em;
+    }
+
+    .calc-toggle-sub {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    .calc-toggle-arrow {
+      font-size: 18px;
+      color: var(--text-faint);
+      transition: transform 0.3s;
+    }
+
+    .calc-toggle-arrow.open { transform: rotate(180deg); }
+
+    .calc-body {
+      display: none;
+      padding: 0 24px 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    .calc-body.open { display: block; }
+
+    .calc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .calc-row {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .calc-row-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .calc-row-emoji { font-size: 16px; }
+
+    .calc-row-label {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .calc-row-cost {
+      font-family: 'Syne Mono', monospace;
+      font-size: 11px;
+      color: var(--text-faint);
+    }
+
+    .calc-inputs {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .calc-input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-family: 'Syne Mono', monospace;
+      font-size: 12px;
+      color: var(--text);
+      outline: none;
+      min-width: 0;
+      transition: border-color 0.2s;
+    }
+
+    .calc-input:focus { border-color: var(--accent); }
+
+    .calc-input-label {
+      font-size: 10px;
+      color: var(--text-faint);
+      white-space: nowrap;
+      font-family: 'Syne Mono', monospace;
+    }
+
+    .calc-result-row {
+      font-family: 'Syne Mono', monospace;
+      font-size: 11px;
+      color: var(--accent3);
+      text-align: right;
+      padding-top: 4px;
+      border-top: 1px solid var(--border);
+      min-height: 18px;
+    }
+
+    .calc-total {
+      margin-top: 20px;
+      padding: 16px 20px;
+      background: rgba(124,92,252,0.08);
+      border: 1px solid rgba(124,92,252,0.2);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .calc-total-label {
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-dim);
+    }
+
+    .calc-total-pollen {
+      font-family: 'Syne Mono', monospace;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .calc-total-usd {
+      font-family: 'Syne Mono', monospace;
+      font-size: 12px;
+      color: var(--text-faint);
+      margin-top: 2px;
+    }
+
+    .calc-tier-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .calc-tier-chip {
+      font-family: 'Syne Mono', monospace;
+      font-size: 10px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+    }
+
+    .calc-tier-chip.enough {
+      border-color: rgba(0,216,200,0.4);
+      color: var(--accent3);
+      background: rgba(0,216,200,0.06);
+    }
+
+    .calc-tier-chip.not-enough {
+      border-color: rgba(255,100,100,0.3);
+      color: #ff8080;
+    }
+
+    .calc-reset {
+      font-family: 'Syne Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-faint);
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 12px;
+    }
+
+    .calc-reset:hover { border-color: var(--accent2); color: var(--accent2); }
+
+    .calc-info {
+      font-size: 11px;
+      color: var(--text-faint);
+      margin-top: 16px;
+      line-height: 1.6;
+    }
+
+    .calc-info a { color: var(--accent3); text-decoration: none; }
+
+    /* ── Pollen Calculator ── */
+    .calc-section {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 32px 80px;
+    }
+    .calc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .calc-row {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .calc-row-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .calc-row-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .calc-row-pollen {
+      font-family: 'Syne Mono', monospace;
+      font-size: 12px;
+      color: var(--accent);
+      background: rgba(124,92,252,0.1);
+      border: 1px solid rgba(124,92,252,0.2);
+      border-radius: 6px;
+      padding: 3px 8px;
+    }
+    .calc-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .calc-input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-family: 'Syne Mono', monospace;
+      font-size: 12px;
+      color: var(--text);
+      outline: none;
+    }
+    .calc-input:focus { border-color: var(--accent); }
+    .calc-unit {
+      font-family: 'Syne Mono', monospace;
+      font-size: 10px;
+      color: var(--text-faint);
+      white-space: nowrap;
+    }
+    .calc-total {
+      background: var(--surface);
+      border: 1px solid var(--border-bright);
+      border-radius: 14px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .calc-total-label {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+    }
+    .calc-total-value {
+      font-family: 'Syne Mono', monospace;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .calc-total-usd {
+      font-family: 'Syne Mono', monospace;
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+    .calc-daily {
+      font-size: 12px;
+      color: var(--text-dim);
+      font-family: 'Syne Mono', monospace;
+    }
+    .calc-tier-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .tier-pill {
+      font-family: 'Syne Mono', monospace;
+      font-size: 10px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      color: var(--text-faint);
+      transition: all 0.2s;
+    }
+    .tier-pill.covered { border-color: rgba(0,216,200,0.4); color: var(--accent3); background: rgba(0,216,200,0.06); }
+    .tier-pill.partial { border-color: rgba(255,180,0,0.4); color: #ffb400; background: rgba(255,180,0,0.06); }
+    .tier-pill.over { border-color: rgba(255,80,80,0.3); color: #ff8080; background: rgba(255,80,80,0.05); }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+
+    /* ── Animations ── */
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero { animation: fade-up 0.6s ease both; }
+    .studio { animation: fade-up 0.6s 0.1s ease both; }
+    .gallery-section { animation: fade-up 0.6s 0.2s ease both; }
+
+    /* ── Random prompt wheel ── */
+    .dice-btn {
+      font-family: 'Syne Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-faint);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .dice-btn:hover { border-color: var(--accent3); color: var(--accent3); }
   </style>
 </head>
 <body>
 
-  <div class="rule-top"></div>
+<div class="ambient ambient-1"></div>
+<div class="ambient ambient-2"></div>
+<div class="ambient ambient-3"></div>
 
-  <header>
-    <p class="kicker">Powered by Pollinations.ai</p>
-    <h1>Dream<em>frame</em></h1>
-    <div class="divider"></div>
-    <p class="subtitle">Type a thought — receive an image</p>
-  </header>
-
-  <!-- Auth gate (shown when no key) -->
-  <div id="auth-gate">
-    <div class="auth-box">
-      <p>Sign in with your Pollinations account to generate images.<br>Your usage, your pollen — this app pays nothing.</p>
-      <button class="connect-btn" onclick="connectPollinations()">Connect with Pollinations</button>
-    </div>
-    <p class="auth-note">Free to use &nbsp;·&nbsp; No credit card &nbsp;·&nbsp; Revoke anytime</p>
+<!-- Nav -->
+<nav>
+  <div class="nav-logo">Dream<span>frame</span></div>
+  <div class="nav-right">
+    <span class="nav-badge connected" id="auth-badge" style="display:none">CONNECTED</span>
+    <button class="btn-ghost" id="byop-nav-btn" onclick="openBYOPModal()">🔑 Enter API Key</button>
   </div>
+</nav>
 
-  <!-- Main app (shown when key present) -->
-  <div id="app" class="hidden">
+<!-- Hero -->
+<div class="hero">
+  <p class="hero-eyebrow">The best way to test your Pollinations API key</p>
+  <h1>
+    Make anything.<br>
+    <span class="line2">Dream louder.</span>
+  </h1>
+  <p class="hero-sub">A full-featured playground for your <a href="https://enter.pollinations.ai" target="_blank" style="color:var(--accent3);text-decoration:none">Pollinations.ai</a> API key — images, video, audio, music. Paste your key and start generating.</p>
 
-    <div class="session-bar">
-      <span class="session-status">
-        <span class="session-dot"></span>
-        Connected to Pollinations
-      </span>
-      <button class="disconnect-btn" onclick="disconnect()">Disconnect</button>
-    </div>
+  <!-- Mode tabs -->
+  <div class="mode-tabs">
+    <button class="mode-tab active" data-mode="image" onclick="setMode('image')">
+      <span class="icon">🖼</span> Image
+    </button>
+    <button class="mode-tab" data-mode="video" onclick="setMode('video')">
+      <span class="icon">🎬</span> Video
+    </button>
+    <button class="mode-tab" data-mode="tts" onclick="setMode('tts')">
+      <span class="icon">🎙</span> Voice
+    </button>
+    <button class="mode-tab" data-mode="music" onclick="setMode('music')">
+      <span class="icon">🎵</span> Music
+    </button>
+  </div>
+</div>
 
-    <div class="input-section">
-      <label class="input-label" for="prompt-input">Your Prompt</label>
-      <div class="input-row">
-        <textarea
-          id="prompt-input"
-          placeholder="a solitary lighthouse on a cliff at dusk, oil painting style…"
-        ></textarea>
-        <button class="gen-btn" id="gen-btn" onclick="generate()">
-          Generate
-        </button>
-      </div>
+<!-- Studio -->
+<div class="studio">
 
-      <div class="options-row">
-        <div class="option-group">
-          <label>Model</label>
-          <select id="model-select">
-            <option value="flux">Flux</option>
-            <option value="turbo">Turbo</option>
-            <option value="flux-realism">Flux Realism</option>
-            <option value="flux-anime">Flux Anime</option>
-            <option value="flux-3d">Flux 3D</option>
-          </select>
+  <!-- Canvas -->
+  <div class="canvas-panel">
+    <div class="canvas-wrap" id="canvas-wrap">
+      <div class="canvas-inner" id="canvas-inner">
+        <div class="canvas-idle" id="canvas-idle">
+          <div class="canvas-idle-icon" id="idle-icon">✦</div>
+          <div class="canvas-idle-text">
+            <strong>Your creation awaits</strong>
+            Describe anything — a scene, a mood, a world
+          </div>
         </div>
-        <div class="option-group">
-          <label>Size</label>
-          <select id="size-select">
-            <option value="1024x1024">1024 × 1024</option>
-            <option value="1280x720">1280 × 720</option>
-            <option value="720x1280">720 × 1280</option>
-            <option value="512x512">512 × 512</option>
-          </select>
-        </div>
-      </div>
-      <p class="error-msg" id="error-msg">Something went wrong. Please try again.</p>
-    </div>
-
-    <div class="canvas-area">
-      <div class="canvas-frame">
-        <div class="placeholder-text" id="placeholder">
-          <span class="big">✦</span>
-          <span class="small">Your image will appear here</span>
-        </div>
-        <div class="loader" id="loader">
-          <div class="spinner"></div>
-          <p class="loader-text" id="loader-text">Generating…</p>
-          <div class="status-bar"><div class="status-bar-fill"></div></div>
-          <p class="status-elapsed" id="status-elapsed">0s</p>
+        <div class="canvas-loading" id="canvas-loading">
+          <div class="loading-ring">
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="32" cy="32" r="28" stroke="rgba(255,255,255,0.07)" stroke-width="3"/>
+              <path d="M32 4 A28 28 0 0 1 60 32" stroke="url(#lg)" stroke-width="3" stroke-linecap="round"/>
+              <defs>
+                <linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#7c5cfc"/>
+                  <stop offset="100%" stop-color="#e040a0"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <div class="loading-text" id="loading-status">Generating…</div>
+          <div class="loading-elapsed" id="loading-elapsed">0s</div>
+          <div class="loading-msg" id="loading-msg"></div>
         </div>
         <img id="result-img" alt="Generated image" />
+        <video id="result-video" autoplay loop muted playsinline></video>
+        <!-- Audio result -->
+        <div id="result-audio-wrap" style="display:none;flex-direction:column;align-items:center;gap:20px;padding:40px 24px;width:100%">
+          <div id="audio-icon" style="font-size:48px">🎵</div>
+          <audio id="result-audio" controls style="width:100%;max-width:400px;accent-color:var(--accent2)"></audio>
+          <div id="audio-label" style="font-size:12px;color:var(--text-dim);text-align:center;line-height:1.5"></div>
+        </div>
       </div>
-      <div class="meta-row">
-        <span class="prompt-caption" id="prompt-caption">—</span>
-        <a class="download-btn" id="download-btn" download="dreamframe.jpg">↓ Save</a>
+    </div>
+    <div class="canvas-toolbar">
+      <span class="canvas-caption" id="canvas-caption">—</span>
+      <div class="canvas-actions">
+        <button class="icon-btn" id="btn-share" disabled title="Copy link" onclick="copyImageLink()">⬡</button>
+        <a class="icon-btn" id="btn-download" style="text-decoration:none; display:flex;" title="Download">↓</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-panel">
+
+    <!-- Prompt -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Prompt</span>
+        <div style="display:flex;gap:8px">
+          <button class="dice-btn" onclick="randomPrompt()" title="Random prompt">🎲 Random</button>
+          <button class="enhance-btn" id="enhance-btn" onclick="enhancePrompt()">
+            ✦ Enhance
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="prompt-wrap">
+          <textarea id="prompt-input" placeholder="Describe your vision… a bioluminescent forest at midnight, hyper-detailed, cinematic"></textarea>
+          <div class="prompt-footer">
+            <span class="char-count" id="char-count">0</span>
+          </div>
+        </div>
+        <div class="prompt-tags" id="style-tags">
+          <button class="prompt-tag" onclick="appendTag('cinematic')">cinematic</button>
+          <button class="prompt-tag" onclick="appendTag('oil painting')">oil painting</button>
+          <button class="prompt-tag" onclick="appendTag('anime style')">anime</button>
+          <button class="prompt-tag" onclick="appendTag('3D render')">3D render</button>
+          <button class="prompt-tag" onclick="appendTag('watercolor')">watercolor</button>
+          <button class="prompt-tag" onclick="appendTag('hyperrealistic')">hyperrealistic</button>
+          <button class="prompt-tag" onclick="appendTag('isometric')">isometric</button>
+        </div>
+        <div class="error-banner" id="error-banner"></div>
+      </div>
+
+      <!-- Negative prompt (collapsible) -->
+      <div class="collapsible-toggle" onclick="toggleNeg(this)">
+        <span>Negative Prompt</span>
+        <span>＋</span>
+      </div>
+      <div class="collapsible-body" id="neg-body">
+        <textarea class="neg-textarea" id="neg-input" placeholder="blurry, watermark, low quality, deformed…"></textarea>
       </div>
     </div>
 
-  </div><!-- /app -->
+    <!-- Settings -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Settings</span>
+      </div>
+      <div class="card-body">
+        <div class="settings-grid">
+          <div class="field">
+            <label class="field-label">Image Model</label>
+            <select id="model-select">
+              <optgroup label="── Free / Alpha ──">
+                <option value="flux">Flux Schnell</option>
+                <option value="turbo">Turbo</option>
+                <option value="flux-realism">Flux Realism</option>
+                <option value="flux-anime">Flux Anime</option>
+                <option value="flux-3d">Flux 3D</option>
+                <option value="flux-2-dev">Flux 2 Dev ⚠️</option>
+                <option value="dirtberry">Dirtberry ⚠️</option>
+                <option value="dirtberry-pro">Dirtberry Pro ⚠️</option>
+                <option value="zimage">Z-Image Turbo</option>
+                <option value="imagen-4">Imagen 4 ⚠️</option>
+                <option value="grok-imagine">Grok Imagine ⚠️</option>
+                <option value="klein">Flux Klein 4B ⚠️</option>
+                <option value="gptimage">GPT Image 1 Mini</option>
+              </optgroup>
+              <optgroup label="── 💎 Paid Only ──">
+                <option value="seedream">Seedream 4.0 💎</option>
+                <option value="kontext">Flux Kontext 💎</option>
+                <option value="nanobanana">NanoBanana 💎</option>
+                <option value="seedream-pro">Seedream Pro 💎</option>
+                <option value="nanobanana-2">NanoBanana 2 💎</option>
+                <option value="nanobanana-pro">NanoBanana Pro 💎</option>
+                <option value="seedream5">Seedream 5 Lite 💎</option>
+                <option value="gptimage-large">GPT Image 1.5 💎</option>
+                <option value="p-image">Pruna p-image 💎</option>
+                <option value="p-image-edit">Pruna p-image-edit 💎</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="field" id="img-size-field">
+            <label class="field-label">Aspect Ratio</label>
+            <select id="size-select">
+              <option value="1024x1024">1:1 Square</option>
+              <option value="1280x720">16:9 Landscape</option>
+              <option value="720x1280">9:16 Portrait</option>
+              <option value="1920x1080">Full HD</option>
+              <option value="512x512">512² Fast</option>
+            </select>
+          </div>
+          <div class="field" id="vid-size-field" style="display:none">
+            <label class="field-label">Video Ratio</label>
+            <select id="video-size-select">
+              <option value="16:9">16:9 Landscape</option>
+              <option value="9:16">9:16 Portrait</option>
+            </select>
+          </div>
 
-  <div class="rule-bottom"></div>
+          <!-- Video model (hidden unless video mode) -->
+          <div class="field full" id="video-model-field" style="display:none">
+            <label class="field-label">Video Model</label>
+            <select id="video-model-select">
+              <option value="grok-video">Grok Video ⚠️ alpha</option>
+              <option value="ltx-2">LTX-2 💎</option>
+              <option value="seedance">Seedance Lite 💎</option>
+              <option value="wan">Wan 2.6 💎</option>
+              <option value="veo">Veo 3.1 Fast 💎</option>
+              <option value="seedance-pro">Seedance Pro-Fast 💎</option>
+              <option value="p-video">Pruna p-video 💎</option>
+            </select>
+          </div>
 
-  <footer>
-    Built with <a href="https://pollinations.ai" target="_blank">pollinations.ai</a>
-    &nbsp;·&nbsp; Free &amp; Open API
-  </footer>
+          <div class="field full">
+            <label class="field-label">Seed</label>
+            <div class="seed-row">
+              <input class="seed-input" type="number" id="seed-input" placeholder="random" min="0" max="999999" />
+              <button class="seed-shuffle" onclick="randomSeed()" title="Random seed">↺</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-  <script>
-    // ── Auth ──────────────────────────────────────────────
+    <!-- TTS Card (hidden unless tts mode) -->
+    <div class="card" id="tts-card" style="display:none">
+      <div class="card-header"><span class="card-title">Voice Settings</span></div>
+      <div class="card-body">
+        <div class="settings-grid">
+          <div class="field full">
+            <label class="field-label">TTS Model</label>
+            <select id="tts-model-select" onchange="onTTSModelChange()">
+              <option value="elevenlabs">ElevenLabs v3</option>
+              <option value="qwen3-tts">Qwen3 TTS ⚠️ alpha</option>
+            </select>
+          </div>
+          <div class="field full" id="tts-voice-field">
+            <label class="field-label">Voice</label>
+            <select id="tts-voice-select">
+              <optgroup label="── OpenAI-compatible ──">
+                <option value="alloy">Alloy · neutral</option>
+                <option value="echo">Echo · male</option>
+                <option value="fable">Fable · narrative</option>
+                <option value="onyx">Onyx · deep male</option>
+                <option value="nova">Nova · female</option>
+                <option value="shimmer">Shimmer · soft female</option>
+              </optgroup>
+              <optgroup label="── ElevenLabs voices ──">
+                <option value="Rachel">Rachel · female, calm</option>
+                <option value="Drew">Drew · male, well-rounded</option>
+                <option value="Clyde">Clyde · male, war veteran</option>
+                <option value="Paul">Paul · male, ground reporter</option>
+                <option value="Domi">Domi · female, strong</option>
+                <option value="Dave">Dave · male, British Essex</option>
+                <option value="Fin">Fin · male, sailor Irish</option>
+                <option value="Bella">Bella · female, soft</option>
+                <option value="Antoni">Antoni · male, well-rounded</option>
+                <option value="Thomas">Thomas · male, calm</option>
+                <option value="Charlie">Charlie · male, casual Australian</option>
+                <option value="Emily">Emily · female, calm</option>
+                <option value="Elli">Elli · female, emotional</option>
+                <option value="Callum">Callum · male, intense</option>
+                <option value="Patrick">Patrick · male, shouty</option>
+                <option value="Harry">Harry · male, anxious</option>
+                <option value="Liam">Liam · male, articulate</option>
+                <option value="Dorothy">Dorothy · female, pleasant British</option>
+                <option value="Josh">Josh · male, deep</option>
+                <option value="Arnold">Arnold · male, crisp</option>
+                <option value="Charlotte">Charlotte · female, seductive Swedish</option>
+                <option value="Matilda">Matilda · female, warm US</option>
+                <option value="Matthew">Matthew · male, audiobook</option>
+                <option value="James">James · male, calm British</option>
+                <option value="Joseph">Joseph · male, ground reporter</option>
+                <option value="Jeremy">Jeremy · male, excited Irish</option>
+                <option value="Michael">Michael · male, orotund</option>
+                <option value="Ethan">Ethan · male, soft</option>
+                <option value="Gigi">Gigi · female, childlike</option>
+                <option value="Freya">Freya · female, overhyped</option>
+                <option value="Grace">Grace · female, southern US</option>
+                <option value="Daniel">Daniel · male, deep British</option>
+                <option value="Serena">Serena · female, pleasant</option>
+                <option value="Adam">Adam · male, deep</option>
+                <option value="Nicole">Nicole · female, whisper</option>
+                <option value="Bill">Bill · male, strong US</option>
+                <option value="Jessie">Jessie · male, raspy US</option>
+                <option value="Ryan">Ryan · male, audiobook</option>
+                <option value="Sam">Sam · male, raspy</option>
+                <option value="Glinda">Glinda · female, witch</option>
+                <option value="Giovanni">Giovanni · male, foreigner Italian</option>
+                <option value="Mimi">Mimi · female, childish Swedish</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="field full" id="tts-system-field" style="display:none">
+            <label class="field-label">Voice Style (system prompt)</label>
+            <textarea id="tts-style-input" style="height:60px;font-size:12px" placeholder="e.g. speak in a calm, deep baritone narrator voice…"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
 
-    let apiKey = null;
+    <!-- Music Card (hidden unless music mode) -->
+    <div class="card" id="music-card" style="display:none">
+      <div class="card-header"><span class="card-title">Music Settings</span></div>
+      <div class="card-body">
+        <div class="field">
+          <label class="field-label">Music Model</label>
+          <select id="music-model-select">
+            <option value="elevenmusic">ElevenLabs Music</option>
+            <option value="suno">Suno v5 ⚠️ alpha</option>
+          </select>
+        </div>
+      </div>
+    </div>
 
-    function getKey() {
-      // Check URL fragment first (just came back from auth)
-      const hash = new URLSearchParams(location.hash.slice(1));
-      const keyFromHash = hash.get('api_key');
-      if (keyFromHash) {
-        sessionStorage.setItem('pollen_key', keyFromHash);
-        // Clean the key out of the URL without a page reload
-        history.replaceState(null, '', location.pathname + location.search);
-        return keyFromHash;
-      }
-      return sessionStorage.getItem('pollen_key');
+    <!-- API key reminder (shown when no key) -->
+    <div class="guest-notice" id="key-reminder">
+      <span class="guest-notice-icon">🔑</span>
+      <div>No API key connected. <a onclick="openBYOPModal()">Enter your Pollinations key</a> to start generating.</div>
+    </div>
+
+    <!-- Generate -->
+    <button class="gen-btn" id="gen-btn" onclick="generate()" style="display:none">
+      <span id="gen-icon">✦</span>
+      <span id="gen-label">Generate Image</span>
+    </button>
+
+  </div>
+</div>
+
+<!-- Pollen Calculator -->
+<div class="calc-section">
+  <div class="calc-card">
+    <div class="calc-toggle" onclick="toggleCalc(this)">
+      <div class="calc-toggle-left">
+        <span class="calc-toggle-icon">🌸</span>
+        <div>
+          <div class="calc-toggle-title">Pollen Cost Calculator</div>
+          <div class="calc-toggle-sub">Estimate how much pollen your project will consume</div>
+        </div>
+      </div>
+      <span class="calc-toggle-arrow">⌄</span>
+    </div>
+    <div class="calc-body" id="calc-body">
+      <div class="calc-grid">
+
+        <!-- Images -->
+        <div class="calc-row">
+          <div class="calc-row-header">
+            <span class="calc-row-emoji">🖼</span>
+            <span class="calc-row-label">Images</span>
+            <span class="calc-row-cost" id="img-rate-label">0.001 p/img</span>
+          </div>
+          <div style="margin-bottom:4px">
+            <label class="calc-input-label">Model</label>
+            <select class="calc-input" id="calc-img-model" onchange="calcUpdate()" style="margin-top:4px">
+              <option value="0.001">Flux Schnell / Flux 2 Dev / Dirtberry</option>
+              <option value="0.002">Z-Image Turbo</option>
+              <option value="0.0025">Imagen 4 / Grok Imagine</option>
+              <option value="0.01">Flux Klein 4B</option>
+              <option value="0.03">Seedream 4.0 💎</option>
+              <option value="0.04">Flux Kontext / Seedream Pro 💎</option>
+              <option value="0.035">Seedream 5 Lite 💎</option>
+            </select>
+          </div>
+          <div class="calc-inputs">
+            <input class="calc-input" type="number" id="calc-imgs" placeholder="0" min="0" oninput="calcUpdate()" />
+            <span class="calc-input-label">images</span>
+          </div>
+          <div class="calc-result-row" id="calc-img-result">—</div>
+        </div>
+
+        <!-- Video -->
+        <div class="calc-row">
+          <div class="calc-row-header">
+            <span class="calc-row-emoji">🎬</span>
+            <span class="calc-row-label">Video</span>
+            <span class="calc-row-cost" id="vid-rate-label">0.003 p/sec</span>
+          </div>
+          <div style="margin-bottom:4px">
+            <label class="calc-input-label">Model</label>
+            <select class="calc-input" id="calc-vid-model" onchange="calcUpdate()" style="margin-top:4px">
+              <option value="0.003">Grok Video ⚠️ alpha</option>
+              <option value="0.010">LTX-2 💎</option>
+              <option value="0.050">Wan 2.6 💎</option>
+              <option value="0.150">Veo 3.1 Fast 💎</option>
+              <option value="0.024">Pruna p-video 💎</option>
+            </select>
+          </div>
+          <div class="calc-inputs">
+            <input class="calc-input" type="number" id="calc-vid-sec" placeholder="0" min="0" oninput="calcUpdate()" />
+            <span class="calc-input-label">seconds</span>
+          </div>
+          <div class="calc-result-row" id="calc-vid-result">—</div>
+        </div>
+
+        <!-- TTS -->
+        <div class="calc-row">
+          <div class="calc-row-header">
+            <span class="calc-row-emoji">🎙</span>
+            <span class="calc-row-label">Voice (TTS)</span>
+            <span class="calc-row-cost">0.18 p / 1K chars</span>
+          </div>
+          <div style="margin-bottom:4px">
+            <label class="calc-input-label">Model</label>
+            <select class="calc-input" id="calc-tts-model" onchange="calcUpdate()" style="margin-top:4px">
+              <option value="0.00018">ElevenLabs v3 (0.18p/1K chars)</option>
+              <option value="0.00001">Qwen3 TTS ⚠️ (0.01p/1K chars)</option>
+            </select>
+          </div>
+          <div class="calc-inputs">
+            <input class="calc-input" type="number" id="calc-tts-chars" placeholder="0" min="0" oninput="calcUpdate()" />
+            <span class="calc-input-label">characters</span>
+          </div>
+          <div class="calc-result-row" id="calc-tts-result">—</div>
+        </div>
+
+        <!-- Music -->
+        <div class="calc-row">
+          <div class="calc-row-header">
+            <span class="calc-row-emoji">🎵</span>
+            <span class="calc-row-label">Music</span>
+            <span class="calc-row-cost">0.005 p/sec</span>
+          </div>
+          <div style="margin-bottom:4px">
+            <label class="calc-input-label">Model</label>
+            <select class="calc-input" id="calc-music-model" onchange="calcUpdate()" style="margin-top:4px">
+              <option value="0.005">ElevenLabs Music (0.005p/sec)</option>
+              <option value="0.001">Suno v5 ⚠️ (0.001p/sec)</option>
+            </select>
+          </div>
+          <div class="calc-inputs">
+            <input class="calc-input" type="number" id="calc-music-sec" placeholder="0" min="0" oninput="calcUpdate()" />
+            <span class="calc-input-label">seconds</span>
+          </div>
+          <div class="calc-result-row" id="calc-music-result">—</div>
+        </div>
+
+        <!-- Whisper (transcription) -->
+        <div class="calc-row">
+          <div class="calc-row-header">
+            <span class="calc-row-emoji">📝</span>
+            <span class="calc-row-label">Transcription (Whisper)</span>
+            <span class="calc-row-cost">0.00004 p/sec</span>
+          </div>
+          <div class="calc-inputs" style="margin-top:26px">
+            <input class="calc-input" type="number" id="calc-whisper-sec" placeholder="0" min="0" oninput="calcUpdate()" />
+            <span class="calc-input-label">seconds audio</span>
+          </div>
+          <div class="calc-result-row" id="calc-whisper-result">—</div>
+        </div>
+
+      </div>
+
+      <!-- Total -->
+      <div class="calc-total">
+        <div>
+          <div class="calc-total-label">Estimated total</div>
+          <div class="calc-total-usd" id="calc-usd">≈ $0.00 at $1 = 1 pollen</div>
+        </div>
+        <div style="text-align:right">
+          <div class="calc-total-pollen" id="calc-total-pollen">0.000 🌸</div>
+        </div>
+      </div>
+
+      <!-- Tier comparison -->
+      <div class="calc-tier-row" id="calc-tier-row">
+        <span class="calc-tier-chip" id="tier-spore">🍄 Spore: 1.5p/wk</span>
+        <span class="calc-tier-chip" id="tier-seed">🌱 Seed: 3p/day</span>
+        <span class="calc-tier-chip" id="tier-flower">🌸 Flower: 10p/day</span>
+        <span class="calc-tier-chip" id="tier-nectar">🍯 Nectar: 20p/day</span>
+      </div>
+
+      <div class="calc-info">
+        Prices from <a href="https://enter.pollinations.ai" target="_blank">enter.pollinations.ai</a> pricing page · 1 pollen ≈ $1 during beta · 💎 Paid-only models require purchased pollen, not tier grants.
+      </div>
+
+      <button class="calc-reset" onclick="calcReset()">↺ Reset calculator</button>
+    </div>
+  </div>
+</div>
+
+<!-- Gallery -->
+<div class="gallery-section" id="gallery-section">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Your Creations</div>
+      <div class="section-count" id="gallery-count">0 items</div>
+    </div>
+    <button class="gallery-clear" onclick="clearGallery()">Clear all</button>
+  </div>
+  <div class="gallery-grid" id="gallery-grid">
+    <div class="gallery-empty">
+      <span class="gallery-empty-icon">🌌</span>
+      Your generated images and videos will appear here
+    </div>
+  </div>
+</div>
+
+<!-- Pollen Calculator -->
+<div class="calc-section" id="calc-section">
+  <div class="section-header">
+    <div>
+      <div class="section-title">💎 Pollen Calculator</div>
+      <div class="section-count">Estimate your API usage cost in pollen</div>
+    </div>
+    <button class="gallery-clear" onclick="resetCalc()">Reset</button>
+  </div>
+
+  <div class="calc-grid">
+
+    <!-- Images -->
+    <div class="calc-row">
+      <div class="calc-row-header">
+        <span class="calc-row-title">🖼 Images</span>
+        <span class="calc-row-pollen" id="cp-images">0 💎</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="calc-input-row">
+          <input class="calc-input" type="number" id="ci-flux" min="0" value="0" oninput="calcUpdate()" placeholder="0"/>
+          <span class="calc-unit">× Flux Schnell / Turbo (0.001 /img)</span>
+        </div>
+        <div class="calc-input-row">
+          <input class="calc-input" type="number" id="ci-zimage" min="0" value="0" oninput="calcUpdate()" placeholder="0"/>
+          <span class="calc-unit">× Z-Image Turbo (0.002 /img)</span>
+        </div>
+        <div class="calc-input-row">
+          <input class="calc-input" type="number" id="ci-imagen" min="0" value="0" oninput="calcUpdate()" placeholder="0"/>
+          <span class="calc-unit">× Imagen 4 / Grok Imagine (0.0025 /img)</span>
+        </div>
+        <div class="calc-input-row">
+          <input class="calc-input" type="number" id="ci-klein" min="0" value="0" oninput="calcUpdate()" placeholder="0"/>
+          <span class="calc-unit">× Flux Klein (0.01 /img)</span>
+        </div>
+        <div class="calc-input-row">
+          <input class="calc-input" type="number" id="ci-gptimage" min="0" value="0" oninput="calcUpdate()" placeholder="0"/>
+          <span class="calc-unit">× GPT Image 1 Mini (0.008 /img avg)</span>
+        </div>
+        <div class="calc-input-row">
+          <input class="calc-input" type="number" id="ci-seedream" min="0" value="0" oninput="calcUpdate()" placeholder="0"/>
+          <span class="calc-unit">× Seedream 4.0 💎 (0.03 /img)</span>
+        </div>
+        <div class="calc-input-row">
+          <input class="calc-input" type="number" id="ci-kontext" min="0" value="0" oninput="calcUpdate()" placeholder="0"/>
+          <span class="calc-unit">× Flux Kontext 💎 (0.04 /img)</span>
+        </div>
+        <div class="calc-input-row">
+          <input class="calc-input" type="number" id="ci-sdpro" min="0" value="0" oninput="calcUpdate()" placeholder="0"/>
+          <span class="calc-unit">× Seedream Pro 💎 (0.04 /img)</span>
+        </div>
+        <div class="calc-input-row">
+          <input class="calc-input" type="number" id="ci-gptlarge" min="0" value="0" oninput="calcUpdate()" placeholder="0"/>
+          <span class="calc-unit">× GPT Image 1.5 💎 (0.032 /img avg)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Video -->
+    <div class="calc-row">
+      <div class="calc-row-header">
+        <span class="calc-row-title">🎬 Video</span>
+        <span class="calc-row-pollen" id="cp-video">0 💎</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="calc-input-row">
+          <input class="calc-input" type="number" id="cv-grok" min="0" value="0" oninput="calcUpdate()" placeholder="0"/>
+          <span class="calc-unit">sec × Grok Video (0.003 /sec)</span>
+        </div>
+        <div class="calc-input-row">
+          <input class="calc-input" type="number" id="cv-ltx" min="0" value="0" oninput="calcUpdate()" placeholder="0"/>
+          <span class="calc-unit">sec × LTX-2 💎 (0.010 /sec)</span>
+        </div>
+        <div class="calc-input-row">
+          <input class="calc-input" type="number" id="cv-wan" min="0" value="0" oninput="calcUpdate()" placeholder="0"/>
+          <span class="calc-unit">sec × Wan 2.6 💎 (0.050 /sec)</span>
+        </div>
+        <div class="calc-input-row">
+          <input class="calc-input" type="number" id="cv-veo" min="0" value="0" oninput="calcUpdate()" placeholder="0"/>
+          <span class="calc-unit">sec × Veo 3.1 Fast 💎 (0.150 /sec)</span>
+        </div>
+        <div class="calc-input-row">
+          <input class="calc-input" type="number" id="cv-seedance" min="0" value="0" oninput="calcUpdate()" placeholder="0"/>
+          <span class="calc-unit">M tokens × Seedance Lite 💎 (1.8 /M)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audio / TTS -->
+    <div class="calc-row">
+      <div class="calc-row-header">
+        <span class="calc-row-title">🎙 Voice & Music</span>
+        <span class="calc-row-pollen" id="cp-audio">0 💎</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="calc-input-row">
+          <input class="calc-input" type="number" id="ca-el-chars" min="0" value="0" oninput="calcUpdate()" placeholder="0"/>
+          <span class="calc-unit">chars × ElevenLabs TTS (0.18 /1K chars)</span>
+        </div>
+        <div class="calc-input-row">
+          <input class="calc-input" type="number" id="ca-music-sec" min="0" value="0" oninput="calcUpdate()" placeholder="0"/>
+          <span class="calc-unit">sec × ElevenLabs Music (0.005 /sec)</span>
+        </div>
+        <div class="calc-input-row">
+          <input class="calc-input" type="number" id="ca-suno-sec" min="0" value="0" oninput="calcUpdate()" placeholder="0"/>
+          <span class="calc-unit">sec × Suno v5 ⚠️ (0.001 /sec)</span>
+        </div>
+        <div class="calc-input-row">
+          <input class="calc-input" type="number" id="ca-whisper-sec" min="0" value="0" oninput="calcUpdate()" placeholder="0"/>
+          <span class="calc-unit">sec × Whisper (transcription) (0.00004 /sec)</span>
+        </div>
+        <div class="calc-input-row">
+          <input class="calc-input" type="number" id="ca-qwen-chars" min="0" value="0" oninput="calcUpdate()" placeholder="0"/>
+          <span class="calc-unit">chars × Qwen3 TTS ⚠️ (0.01 /1K chars)</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Total bar -->
+  <div class="calc-total">
+    <div>
+      <div class="calc-total-label">Estimated total</div>
+      <div class="calc-total-usd" id="calc-usd">≈ $0.000 USD</div>
+    </div>
+    <div style="text-align:right">
+      <div class="calc-total-value" id="calc-total">0.000 💎</div>
+      <div class="calc-daily" id="calc-daily-note"></div>
+    </div>
+  </div>
+  <div class="calc-tier-bar" id="calc-tier-bar">
+    <span class="tier-pill" id="tier-spore">🍄 Spore: 1.5/wk (0.21/day)</span>
+    <span class="tier-pill" id="tier-seed">🌱 Seed: 3/day</span>
+    <span class="tier-pill" id="tier-flower">🌸 Flower: 10/day</span>
+    <span class="tier-pill" id="tier-nectar">🍯 Nectar: 20/day</span>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer>
+  Built with <a href="https://pollinations.ai" target="_blank">pollinations.ai</a>
+  &nbsp;·&nbsp; Free &amp; open API
+  &nbsp;·&nbsp; <a href="https://github.com/funniman23/Dreamframe" target="_blank">View source</a>
+</footer>
+
+<!-- BYOP Modal -->
+<div class="modal-overlay" id="byop-modal">
+  <div class="modal">
+    <div class="modal-title">Enter API Key</div>
+    <div class="modal-sub">
+      Enter your Pollinations API key (<code>sk_…</code> or <code>pk_…</code>) to access all models.<br><br>
+      Get one free at <a href="https://enter.pollinations.ai" target="_blank">enter.pollinations.ai</a> — sign in with GitHub, create a key, paste it here.
+    </div>
+    <input class="modal-input" type="text" id="api-key-input" placeholder="pk_xxxxxxxxxxxxxxxx" />
+    <div class="modal-btns">
+      <button class="btn-primary" onclick="saveApiKey()">Connect</button>
+      <button class="btn-secondary" onclick="closeBYOPModal()">Maybe later</button>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+  <div class="lightbox-inner" id="lightbox-inner">
+    <button class="lightbox-close" onclick="closeLightbox(true)">✕</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let apiKey = null;
+let currentMode = 'image';
+let gallery = JSON.parse(localStorage.getItem('df_gallery') || '[]');
+let elapsedTimer = null;
+let currentUrl = null;
+
+const RANDOM_PROMPTS = [
+  "a bioluminescent coral reef city at night, underwater architecture, cinematic",
+  "an ancient library suspended in the clouds, golden hour, intricate detail",
+  "a lone samurai standing in a neon-lit cyberpunk alley, rain, dramatic",
+  "a cozy cottage in the middle of a giant mushroom forest, autumn, warm",
+  "an astronaut discovering a glowing alien artifact on an icy moon",
+  "a steampunk airship port at sunset, brass, gears, dramatic clouds",
+  "a mystical fox spirit wandering through a Japanese bamboo forest at dawn",
+  "an abandoned futuristic mall overgrown with tropical vines and sunlight",
+  "a giant whale swimming through a starlit sky above a quiet village",
+  "a magical potion shop interior, shelves of glowing bottles, candles",
+  "a hyperrealistic portrait of a time traveler from Victorian London",
+  "a Renaissance painting of a robot philosopher in deep thought",
+  "the interior of a crystal palace at the center of the earth",
+  "a cinematic close-up of a dragon's eye reflecting a burning city",
+  "a neon-soaked jazz club on a rain-slicked street, 1940s Tokyo"
+];
+
+const LOADING_MESSAGES = [
+  ["Consulting the dream oracle…", "Painting neurons onto canvas…"],
+  ["Waking the muse…", "Mixing frequencies of light…"],
+  ["Rendering imagination…", "A few more brushstrokes…"],
+  ["Distilling your vision…", "Almost there — patience, dreamer…"],
+  ["The model is thinking deeply…", "Good things take seconds."]
+];
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+function init() {
+  // Check OAuth callback
+  const hash = new URLSearchParams(location.hash.slice(1));
+  const keyFromHash = hash.get('api_key');
+  if (keyFromHash) {
+    apiKey = keyFromHash;
+    sessionStorage.setItem('df_key', keyFromHash);
+    history.replaceState(null, '', location.pathname + location.search);
+  } else {
+    apiKey = sessionStorage.getItem('df_key') || null;
+  }
+
+  updateAuthUI();
+  renderGallery();
+
+  const promptEl = document.getElementById('prompt-input');
+  promptEl.addEventListener('input', () => {
+    document.getElementById('char-count').textContent = promptEl.value.length;
+  });
+
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') generate();
+    if (e.key === 'Escape') { closeLightbox(true); closeBYOPModal(); }
+  });
+}
+
+function updateAuthUI() {
+  const badge = document.getElementById('auth-badge');
+  const navBtn = document.getElementById('byop-nav-btn');
+  const keyReminder = document.getElementById('key-reminder');
+  const genBtn = document.getElementById('gen-btn');
+
+  if (apiKey) {
+    badge.style.display = 'inline-block';
+    badge.textContent = 'CONNECTED';
+    navBtn.textContent = 'Disconnect';
+    navBtn.onclick = disconnect;
+    keyReminder.style.display = 'none';
+    genBtn.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+    navBtn.textContent = '🔑 Enter API Key';
+    navBtn.onclick = openBYOPModal;
+    keyReminder.style.display = 'flex';
+    genBtn.style.display = 'none';
+  }
+}
+
+// ══════════════════════════════════════════
+// MODE
+// ══════════════════════════════════════════
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.mode === mode)
+  );
+
+  const genBtn = document.getElementById('gen-btn');
+  const genLabel = document.getElementById('gen-label');
+  const genIcon = document.getElementById('gen-icon');
+  const videoModelField = document.getElementById('video-model-field');
+  const imgModelField = document.getElementById('model-select').closest('.field');
+  const imgSizeField = document.getElementById('img-size-field');
+  const vidSizeField = document.getElementById('vid-size-field');
+  const ttsCard = document.getElementById('tts-card');
+  const musicCard = document.getElementById('music-card');
+  const settingsCard = ttsCard.previousElementSibling; // the Settings card
+  const seedField = document.getElementById('seed-input').closest('.field');
+
+  // Reset all
+  videoModelField.style.display = 'none';
+  imgSizeField.style.display = 'flex';
+  vidSizeField.style.display = 'none';
+  imgModelField.style.display = 'flex';
+  ttsCard.style.display = 'none';
+  musicCard.style.display = 'none';
+  seedField.style.display = 'flex';
+  genBtn.classList.remove('video-mode', 'audio-mode');
+
+  if (mode === 'image') {
+    genLabel.textContent = 'Generate Image';
+    genIcon.textContent = '✦';
+  } else if (mode === 'video') {
+    genLabel.textContent = 'Generate Video';
+    genIcon.textContent = '🎬';
+    genBtn.classList.add('video-mode');
+    videoModelField.style.display = 'block';
+    imgSizeField.style.display = 'none';
+    vidSizeField.style.display = 'flex';
+    imgModelField.style.display = 'none';
+    seedField.style.display = 'none';
+  } else if (mode === 'tts') {
+    genLabel.textContent = 'Generate Voice';
+    genIcon.textContent = '🎙';
+    genBtn.classList.add('audio-mode');
+    ttsCard.style.display = 'block';
+    imgSizeField.style.display = 'none';
+    vidSizeField.style.display = 'none';
+    imgModelField.style.display = 'none';
+    seedField.style.display = 'none';
+    videoModelField.style.display = 'none';
+  } else if (mode === 'music') {
+    genLabel.textContent = 'Generate Music';
+    genIcon.textContent = '🎵';
+    genBtn.classList.add('audio-mode');
+    musicCard.style.display = 'block';
+    imgSizeField.style.display = 'none';
+    vidSizeField.style.display = 'none';
+    imgModelField.style.display = 'none';
+    seedField.style.display = 'none';
+    videoModelField.style.display = 'none';
+  }
+
+  // Update prompt placeholder and label to match mode
+  const ta = document.getElementById('prompt-input');
+  const promptLabel = document.querySelector('.card-title');
+  const placeholders = {
+    image: 'Describe your vision… a bioluminescent forest at midnight, hyper-detailed, cinematic',
+    video: 'Describe a scene in motion… a ship sailing through a stormy sea, dramatic waves',
+    tts: 'Enter the text you want spoken aloud…',
+    music: 'Describe the music… upbeat jazz piano with light brushed drums, warm evening mood'
+  };
+  ta.placeholder = placeholders[mode] || ta.placeholder;
+}
+
+// ══════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════
+function openBYOPModal() {
+  document.getElementById('byop-modal').classList.add('open');
+  setTimeout(() => document.getElementById('api-key-input').focus(), 100);
+}
+
+function closeBYOPModal() {
+  document.getElementById('byop-modal').classList.remove('open');
+}
+
+function saveApiKey() {
+  const val = document.getElementById('api-key-input').value.trim();
+  if (!val) return;
+  apiKey = val;
+  sessionStorage.setItem('df_key', val);
+  closeBYOPModal();
+  updateAuthUI();
+}
+
+function disconnect() {
+  apiKey = null;
+  sessionStorage.removeItem('df_key');
+  updateAuthUI();
+}
+
+// ══════════════════════════════════════════
+// PROMPT UTILITIES
+// ══════════════════════════════════════════
+function appendTag(tag) {
+  const ta = document.getElementById('prompt-input');
+  const v = ta.value.trim();
+  ta.value = v ? v + ', ' + tag : tag;
+  document.getElementById('char-count').textContent = ta.value.length;
+  ta.focus();
+}
+
+function randomPrompt() {
+  const ta = document.getElementById('prompt-input');
+  ta.value = RANDOM_PROMPTS[Math.floor(Math.random() * RANDOM_PROMPTS.length)];
+  document.getElementById('char-count').textContent = ta.value.length;
+}
+
+function randomSeed() {
+  document.getElementById('seed-input').value = Math.floor(Math.random() * 999999);
+}
+
+async function enhancePrompt() {
+  const ta = document.getElementById('prompt-input');
+  const prompt = ta.value.trim();
+  if (!prompt) return;
+  const btn = document.getElementById('enhance-btn');
+  btn.disabled = true;
+  btn.textContent = '✦ Enhancing…';
+  try {
+    const sysPrompt = 'Improve this image generation prompt to be more detailed and vivid. Return ONLY the improved prompt, nothing else.';
+    let url = `https://gen.pollinations.ai/text/${encodeURIComponent(prompt)}?model=openai-fast&system=${encodeURIComponent(sysPrompt)}&referrer=dreamframe`;
+    if (apiKey) url += `&key=${apiKey}`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const improved = await res.text();
+      ta.value = improved.trim().replace(/^["']|["']$/g, '');
+      document.getElementById('char-count').textContent = ta.value.length;
     }
+  } catch(e) { /* silent */ }
+  btn.disabled = false;
+  btn.innerHTML = '✦ Enhance';
+}
 
-    function connectPollinations() {
-      const params = new URLSearchParams({
-        redirect_url: 'https://funniman23.github.io/Dreamframe/',
-        app_key: 'pk_7KYRn06pyqjQGqSl',
-      });
-      window.location.href = `https://enter.pollinations.ai/authorize?${params}`;
+// ══════════════════════════════════════════
+// TIMER
+// ══════════════════════════════════════════
+function startTimer() {
+  const el = document.getElementById('loading-elapsed');
+  const status = document.getElementById('loading-status');
+  const msg = document.getElementById('loading-msg');
+  const start = Date.now();
+  const phrases = LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)];
+  let phraseIdx = 0;
+  status.textContent = 'Generating…';
+  msg.textContent = phrases[0];
+  el.textContent = '0s';
+  elapsedTimer = setInterval(() => {
+    const s = Math.floor((Date.now() - start) / 1000);
+    el.textContent = s + 's';
+    if (s === 8 && phraseIdx === 0) { msg.textContent = phrases[1]; phraseIdx++; }
+    if (s === 25) msg.textContent = 'Taking longer than usual…';
+    if (s === 60) msg.textContent = 'Still working — video/complex models can take ~2min…';
+  }, 500);
+}
+
+function stopTimer() {
+  clearInterval(elapsedTimer);
+  elapsedTimer = null;
+}
+
+function getSizeClass(size) {
+  const [w, h] = size.split('x').map(Number);
+  if (w > h) return 'landscape';
+  if (h > w) return 'portrait';
+  return '';
+}
+
+// ══════════════════════════════════════════
+// CANVAS HELPERS
+// ══════════════════════════════════════════
+function resetCanvas() {
+  const loading = document.getElementById('canvas-loading');
+  const idle = document.getElementById('canvas-idle');
+  const img = document.getElementById('result-img');
+  const videoEl = document.getElementById('result-video');
+  const audioWrap = document.getElementById('result-audio-wrap');
+  loading.classList.add('active');
+  idle.style.display = 'none';
+  img.style.display = 'none';
+  videoEl.style.display = 'none';
+  audioWrap.style.display = 'none';
+}
+
+function showCanvasIdle() {
+  document.getElementById('canvas-loading').classList.remove('active');
+  document.getElementById('canvas-idle').style.display = 'flex';
+}
+
+// ══════════════════════════════════════════
+// GENERATE DISPATCHER
+// ══════════════════════════════════════════
+function generate() {
+  if (!apiKey) { openBYOPModal(); return; }
+  const prompt = document.getElementById('prompt-input').value.trim();
+  if (!prompt) { showError('Please enter a prompt first!'); return; }
+  clearError();
+  document.getElementById('gen-btn').disabled = true;
+  startTimer();
+  resetCanvas();
+  if (currentMode === 'image') generateImage(prompt);
+  else if (currentMode === 'video') generateVideo(prompt);
+  else if (currentMode === 'tts') generateTTS(prompt);
+  else if (currentMode === 'music') generateMusic(prompt);
+}
+
+// ══════════════════════════════════════════
+// IMAGE
+// ══════════════════════════════════════════
+async function generateImage(prompt) {
+  const model = document.getElementById('model-select').value;
+  const size  = document.getElementById('size-select').value;
+  const [w, h] = size.split('x');
+  const seedVal = document.getElementById('seed-input').value;
+  const seed = seedVal ? parseInt(seedVal) : Math.floor(Math.random() * 999999);
+  const neg  = document.getElementById('neg-input').value.trim();
+
+  // Set canvas aspect ratio
+  document.getElementById('canvas-wrap').className = 'canvas-wrap ' + getSizeClass(size);
+
+  let url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?model=${model}&width=${w}&height=${h}&seed=${seed}&referrer=dreamframe&key=${apiKey}`;
+  if (neg) url += `&negative_prompt=${encodeURIComponent(neg)}`;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 90000);
+
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (!res.ok) {
+      let d = ''; try { d = (await res.text()).slice(0, 200); } catch(_) {}
+      throw new Error(`HTTP ${res.status} — ${d}`);
     }
+    const blob = await res.blob();
+    if (!blob.type.startsWith('image/')) throw new Error('Server did not return an image. Try a different model.');
+    const blobUrl = URL.createObjectURL(blob);
+    stopTimer();
+    document.getElementById('canvas-loading').classList.remove('active');
+    const img = document.getElementById('result-img');
+    img.src = blobUrl;
+    img.style.display = 'block';
+    document.getElementById('canvas-caption').textContent = prompt;
+    document.getElementById('btn-share').disabled = false;
+    const dlBtn = document.getElementById('btn-download');
+    dlBtn.href = blobUrl; dlBtn.download = 'dreamframe.jpg';
+    document.getElementById('gen-btn').disabled = false;
+    addToGallery({ type: 'image', url: blobUrl, prompt, size, model, seed });
+  } catch(e) {
+    clearTimeout(timeout); stopTimer(); showCanvasIdle();
+    document.getElementById('gen-btn').disabled = false;
+    showError(e.name === 'AbortError' ? 'Timed out (90s). Try Turbo or Flux Schnell.' : 'Image failed: ' + e.message);
+  }
+}
 
-    function disconnect() {
-      sessionStorage.removeItem('pollen_key');
-      apiKey = null;
-      document.getElementById('auth-gate').style.display = '';
-      document.getElementById('app').classList.add('hidden');
+// ══════════════════════════════════════════
+// VIDEO
+// ══════════════════════════════════════════
+async function generateVideo(prompt) {
+  const videoModel = document.getElementById('video-model-select').value;
+  const ar = document.getElementById('video-size-select').value; // "16:9" or "9:16"
+  const [w, h] = ar === '16:9' ? ['1280', '720'] : ['720', '1280'];
+
+  document.getElementById('canvas-wrap').className = 'canvas-wrap ' + (ar === '16:9' ? 'landscape' : 'portrait');
+
+  let url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?model=${videoModel}&width=${w}&height=${h}&aspectRatio=${encodeURIComponent(ar)}&referrer=dreamframe&key=${apiKey}`;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 180000); // 3 min
+
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (!res.ok) {
+      let d = ''; try { d = (await res.text()).slice(0, 200); } catch(_) {}
+      throw new Error(`HTTP ${res.status} — ${d}`);
     }
+    const blob = await res.blob();
+    const ct = blob.type || res.headers.get('content-type') || '';
+    const blobUrl = URL.createObjectURL(blob);
+    stopTimer();
+    document.getElementById('canvas-loading').classList.remove('active');
 
-    function init() {
-      apiKey = getKey();
-      if (apiKey) {
-        document.getElementById('auth-gate').style.display = 'none';
-        document.getElementById('app').classList.remove('hidden');
-      }
+    if (ct.includes('video') || ct.includes('mp4') || ct.includes('webm')) {
+      const videoEl = document.getElementById('result-video');
+      videoEl.src = blobUrl; videoEl.style.display = 'block';
+      document.getElementById('canvas-caption').textContent = prompt;
+      const dlBtn = document.getElementById('btn-download');
+      dlBtn.href = blobUrl; dlBtn.download = 'dreamframe.mp4';
+      addToGallery({ type: 'video', url: blobUrl, prompt, size: ar.replace(':','x'), model: videoModel });
+    } else {
+      // Some video models return a first-frame image — show it
+      const img = document.getElementById('result-img');
+      img.src = blobUrl; img.style.display = 'block';
+      document.getElementById('canvas-caption').textContent = prompt + ' (preview frame)';
+      document.getElementById('btn-download').href = blobUrl;
+      addToGallery({ type: 'image', url: blobUrl, prompt, size: ar.replace(':','x'), model: videoModel });
     }
+    document.getElementById('gen-btn').disabled = false;
+  } catch(e) {
+    clearTimeout(timeout); stopTimer(); showCanvasIdle();
+    document.getElementById('gen-btn').disabled = false;
+    showError(e.name === 'AbortError' ? 'Video timed out (3 min). Try a shorter prompt.' : 'Video failed: ' + e.message);
+  }
+}
 
-    init();
+// ══════════════════════════════════════════
+// TTS
+// ══════════════════════════════════════════
+function onTTSModelChange() {
+  const model = document.getElementById('tts-model-select').value;
+  // qwen3-tts uses a system prompt for voice style; elevenlabs uses a voice picker
+  document.getElementById('tts-voice-field').style.display = model === 'qwen3-tts' ? 'none' : 'flex';
+  document.getElementById('tts-system-field').style.display = model === 'qwen3-tts' ? 'flex' : 'none';
+}
 
-    // ── Timer ─────────────────────────────────────────────
+async function generateTTS(prompt) {
+  const model = document.getElementById('tts-model-select').value;
+  document.getElementById('canvas-wrap').className = 'canvas-wrap';
 
-    let elapsedTimer = null;
+  // Correct endpoint: POST /v1/audio/speech with JSON body
+  const body = { input: prompt, model, referrer: 'dreamframe' };
 
-    function startTimer() {
-      const el = document.getElementById('status-elapsed');
-      const loaderText = document.getElementById('loader-text');
-      const start = Date.now();
-      const messages = [
-        [0,  'Generating…'],
-        [5,  'Still working…'],
-        [15, 'Almost there…'],
-        [30, 'Taking a bit longer than usual…'],
-      ];
-      el.textContent = '0s';
-      elapsedTimer = setInterval(() => {
-        const s = Math.floor((Date.now() - start) / 1000);
-        el.textContent = s + 's';
-        for (let i = messages.length - 1; i >= 0; i--) {
-          if (s >= messages[i][0]) { loaderText.textContent = messages[i][1]; break; }
-        }
-      }, 500);
-    }
+  if (model === 'qwen3-tts') {
+    const style = document.getElementById('tts-style-input').value.trim();
+    if (style) body.system = style;
+  } else {
+    body.voice = document.getElementById('tts-voice-select').value;
+  }
 
-    function stopTimer() {
-      clearInterval(elapsedTimer);
-      elapsedTimer = null;
-    }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60000);
 
-    // ── Generate ──────────────────────────────────────────
-
-    function generate() {
-      const prompt = document.getElementById('prompt-input').value.trim();
-      if (!prompt) return;
-
-      const model  = document.getElementById('model-select').value;
-      const size   = document.getElementById('size-select').value;
-      const [width, height] = size.split('x');
-
-      const btn         = document.getElementById('gen-btn');
-      const loader      = document.getElementById('loader');
-      const img         = document.getElementById('result-img');
-      const placeholder = document.getElementById('placeholder');
-      const errorMsg    = document.getElementById('error-msg');
-      const caption     = document.getElementById('prompt-caption');
-      const dlBtn       = document.getElementById('download-btn');
-
-      errorMsg.classList.remove('visible');
-      btn.disabled = true;
-      loader.classList.add('active');
-      img.style.display = 'none';
-      img.src = '';
-      placeholder.style.display = 'none';
-      startTimer();
-
-      const seed = Math.floor(Math.random() * 999999);
-      const encodedPrompt = encodeURIComponent(prompt);
-      const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?model=${model}&width=${width}&height=${height}&seed=${seed}&nologo=true&token=${apiKey}`;
-
-      img.onload = () => {
-        stopTimer();
-        img.style.display = 'block';
-        loader.classList.remove('active');
-        btn.disabled = false;
-        caption.textContent = prompt;
-        dlBtn.href = url;
-        dlBtn.classList.add('visible');
-      };
-      img.onerror = () => {
-        stopTimer();
-        loader.classList.remove('active');
-        placeholder.style.display = 'flex';
-        btn.disabled = false;
-        errorMsg.classList.add('visible');
-      };
-      img.src = url;
-    }
-
-    document.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') generate();
+  try {
+    const res = await fetch('https://gen.pollinations.ai/v1/audio/speech', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal
     });
-  </script>
+    clearTimeout(timeout);
+    if (!res.ok) {
+      let d = ''; try { d = (await res.text()).slice(0, 200); } catch(_) {}
+      throw new Error(`HTTP ${res.status} — ${d}`);
+    }
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    stopTimer();
+    document.getElementById('canvas-loading').classList.remove('active');
+
+    const audioEl = document.getElementById('result-audio');
+    const audioWrap = document.getElementById('result-audio-wrap');
+    const audioIcon = document.getElementById('audio-icon');
+    const audioLabel = document.getElementById('audio-label');
+
+    audioEl.src = blobUrl;
+    audioIcon.textContent = '🎙';
+    audioLabel.textContent = prompt.length > 100 ? prompt.slice(0, 100) + '…' : prompt;
+    audioWrap.style.display = 'flex';
+    audioEl.play().catch(() => {});
+
+    document.getElementById('canvas-caption').textContent = prompt.slice(0, 60) + (prompt.length > 60 ? '…' : '');
+    const dlBtn = document.getElementById('btn-download');
+    dlBtn.href = blobUrl; dlBtn.download = 'dreamframe-voice.mp3';
+    document.getElementById('gen-btn').disabled = false;
+    addToGallery({ type: 'audio', url: blobUrl, prompt, model });
+  } catch(e) {
+    clearTimeout(timeout); stopTimer(); showCanvasIdle();
+    document.getElementById('gen-btn').disabled = false;
+    showError(e.name === 'AbortError' ? 'TTS timed out (60s).' : 'Voice failed: ' + e.message);
+  }
+}
+
+// ══════════════════════════════════════════
+// MUSIC
+// ══════════════════════════════════════════
+async function generateMusic(prompt) {
+  const model = document.getElementById('music-model-select').value;
+  document.getElementById('canvas-wrap').className = 'canvas-wrap';
+
+  // Music via same POST /v1/audio/speech endpoint with music model
+  const body = { input: prompt, model, referrer: 'dreamframe' };
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120000); // 2 min
+
+  try {
+    const res = await fetch('https://gen.pollinations.ai/v1/audio/speech', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    if (!res.ok) {
+      let d = ''; try { d = (await res.text()).slice(0, 200); } catch(_) {}
+      throw new Error(`HTTP ${res.status} — ${d}`);
+    }
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    stopTimer();
+    document.getElementById('canvas-loading').classList.remove('active');
+
+    const audioEl = document.getElementById('result-audio');
+    const audioWrap = document.getElementById('result-audio-wrap');
+    document.getElementById('audio-icon').textContent = '🎵';
+    document.getElementById('audio-label').textContent = prompt.length > 100 ? prompt.slice(0, 100) + '…' : prompt;
+    audioEl.src = blobUrl;
+    audioWrap.style.display = 'flex';
+    audioEl.play().catch(() => {});
+
+    document.getElementById('canvas-caption').textContent = prompt.slice(0, 60) + (prompt.length > 60 ? '…' : '');
+    const dlBtn = document.getElementById('btn-download');
+    dlBtn.href = blobUrl; dlBtn.download = 'dreamframe-music.mp3';
+    document.getElementById('gen-btn').disabled = false;
+    addToGallery({ type: 'audio', url: blobUrl, prompt, model, audioType: 'music' });
+  } catch(e) {
+    clearTimeout(timeout); stopTimer(); showCanvasIdle();
+    document.getElementById('gen-btn').disabled = false;
+    showError(e.name === 'AbortError' ? 'Music timed out (2 min).' : 'Music failed: ' + e.message);
+  }
+}
+
+// ══════════════════════════════════════════
+// GALLERY
+// ══════════════════════════════════════════
+function addToGallery(item) {
+  item.id = Date.now();
+  gallery.unshift(item);
+  if (gallery.length > 50) gallery = gallery.slice(0, 50);
+  try {
+    const toSave = gallery.filter(i => !i.url.startsWith('blob:'));
+    localStorage.setItem('df_gallery', JSON.stringify(toSave));
+  } catch(_) {}
+  renderGallery();
+}
+
+function renderGallery() {
+  const grid = document.getElementById('gallery-grid');
+  const count = document.getElementById('gallery-count');
+  count.textContent = gallery.length + ' item' + (gallery.length !== 1 ? 's' : '');
+  if (!gallery.length) {
+    grid.innerHTML = '<div class="gallery-empty"><span class="gallery-empty-icon">🌌</span>Your generated images, videos and audio will appear here</div>';
+    return;
+  }
+  grid.innerHTML = gallery.map(item => {
+    const sizeClass = item.size ? getSizeClass(item.size.includes(':') ? item.size.replace(':', 'x') : item.size) : '';
+    if (item.type === 'audio') {
+      return `<div class="gallery-item ${sizeClass}" style="aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px">
+        <span style="font-size:32px">${item.audioType === 'music' ? '🎵' : '🎙'}</span>
+        <audio src="${item.url}" controls style="width:100%;accent-color:var(--accent2)"></audio>
+        <div class="gallery-item-prompt" style="opacity:1;font-size:10px;color:var(--text-dim);text-align:center">${escapeHtml(item.prompt)}</div>
+        <a class="gallery-btn" href="${item.url}" download="dreamframe.mp3">↓ Save</a>
+      </div>`;
+    }
+    return `<div class="gallery-item ${sizeClass} ${item.type === 'video' ? 'video-item' : ''}" onclick="openLightbox('${item.url}','${item.type}')">
+      ${item.type === 'video'
+        ? `<video src="${item.url}" muted loop autoplay playsinline style="width:100%;height:100%;object-fit:cover"></video>`
+        : `<img src="${item.url}" alt="" loading="lazy" />`}
+      <div class="gallery-item-overlay">
+        <div class="gallery-item-prompt">${escapeHtml(item.prompt)}</div>
+        <div class="gallery-item-actions">
+          <a class="gallery-btn" href="${item.url}" download="dreamframe.${item.type === 'video' ? 'mp4' : 'jpg'}" onclick="event.stopPropagation()">↓ Save</a>
+          <button class="gallery-btn" onclick="event.stopPropagation();reuse('${encodeURIComponent(item.prompt)}')">↩ Reuse</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function clearGallery() {
+  gallery = [];
+  localStorage.removeItem('df_gallery');
+  renderGallery();
+}
+
+function reuse(encodedPrompt) {
+  document.getElementById('prompt-input').value = decodeURIComponent(encodedPrompt);
+  document.getElementById('char-count').textContent = decodeURIComponent(encodedPrompt).length;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  document.getElementById('prompt-input').focus();
+}
+
+// ══════════════════════════════════════════
+// LIGHTBOX
+// ══════════════════════════════════════════
+function openLightbox(url, type) {
+  const inner = document.getElementById('lightbox-inner');
+  inner.innerHTML = '<button class="lightbox-close" onclick="closeLightbox(true)">✕</button>';
+  if (type === 'video') {
+    const v = document.createElement('video');
+    v.src = url; v.autoplay = true; v.loop = true; v.muted = false; v.controls = true;
+    inner.appendChild(v);
+  } else {
+    const i = document.createElement('img');
+    i.src = url;
+    inner.appendChild(i);
+  }
+  document.getElementById('lightbox').classList.add('open');
+}
+
+function closeLightbox(force) {
+  if (force === true || force.target === document.getElementById('lightbox')) {
+    document.getElementById('lightbox').classList.remove('open');
+    document.getElementById('lightbox-inner').innerHTML = '<button class="lightbox-close" onclick="closeLightbox(true)">✕</button>';
+  }
+}
+
+// ══════════════════════════════════════════
+// MISC
+// ══════════════════════════════════════════
+function showError(msg) {
+  const el = document.getElementById('error-banner');
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+
+function clearError() {
+  document.getElementById('error-banner').classList.remove('visible');
+}
+
+function toggleNeg(el) {
+  const body = document.getElementById('neg-body');
+  body.classList.toggle('open');
+  el.querySelector('span:last-child').textContent = body.classList.contains('open') ? '－' : '＋';
+}
+
+function copyImageLink() {
+  if (!currentUrl) return;
+  navigator.clipboard.writeText(currentUrl).then(() => {
+    const btn = document.getElementById('btn-share');
+    btn.textContent = '✓';
+    setTimeout(() => btn.textContent = '⬡', 2000);
+  });
+}
+
+function escapeHtml(str) {
+  return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+
+// ══════════════════════════════════════════
+// POLLEN CALCULATOR
+// ══════════════════════════════════════════
+const CALC_RATES = {
+  // images (pollen per image)
+  'ci-flux':     0.001,
+  'ci-zimage':   0.002,
+  'ci-imagen':   0.0025,
+  'ci-klein':    0.01,
+  'ci-gptimage': 0.008,  // avg of input+output tokens at 1024px
+  'ci-seedream': 0.03,
+  'ci-kontext':  0.04,
+  'ci-sdpro':    0.04,
+  'ci-gptlarge': 0.032,
+  // video (pollen per second)
+  'cv-grok':     0.003,
+  'cv-ltx':      0.010,
+  'cv-wan':      0.050,
+  'cv-veo':      0.150,
+  // video (pollen per M tokens)
+  'cv-seedance': 1.8,
+  // audio chars (pollen per 1K chars)
+  'ca-el-chars': 0.00018,   // 0.18/1K = 0.00018/char
+  'ca-qwen-chars': 0.00001, // 0.01/1K = 0.00001/char
+  // audio seconds
+  'ca-music-sec': 0.005,
+  'ca-suno-sec':  0.001,
+  'ca-whisper-sec': 0.00004
+};
+
+const TIERS = [
+  { id: 'tier-spore',  name: '🍄 Spore',  daily: 1.5/7 },
+  { id: 'tier-seed',   name: '🌱 Seed',   daily: 3 },
+  { id: 'tier-flower', name: '🌸 Flower', daily: 10 },
+  { id: 'tier-nectar', name: '🍯 Nectar', daily: 20 }
+];
+
+// 1 pollen ≈ $0.01 (rough conversion based on $5 = 10💎 during beta)
+const POLLEN_TO_USD = 0.01;
+
+function calcUpdate() {
+  let imgTotal = 0, vidTotal = 0, audioTotal = 0;
+
+  for (const [id, rate] of Object.entries(CALC_RATES)) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const val = parseFloat(el.value) || 0;
+    const cost = val * rate;
+    if (id.startsWith('ci-')) imgTotal += cost;
+    else if (id.startsWith('cv-')) vidTotal += cost;
+    else audioTotal += cost;
+  }
+
+  const total = imgTotal + vidTotal + audioTotal;
+
+  document.getElementById('cp-images').textContent = imgTotal.toFixed(4) + ' 💎';
+  document.getElementById('cp-video').textContent  = vidTotal.toFixed(4) + ' 💎';
+  document.getElementById('cp-audio').textContent  = audioTotal.toFixed(4) + ' 💎';
+  document.getElementById('calc-total').textContent = total.toFixed(4) + ' 💎';
+  document.getElementById('calc-usd').textContent = '≈ $' + (total * POLLEN_TO_USD).toFixed(4) + ' USD';
+
+  // Daily note
+  const noteEl = document.getElementById('calc-daily-note');
+  if (total > 0) {
+    const days = total > 0 ? (total / 3).toFixed(1) : 0;
+    noteEl.textContent = `≈ ${days} day(s) of Seed tier`;
+  } else {
+    noteEl.textContent = '';
+  }
+
+  // Tier pills
+  TIERS.forEach(t => {
+    const pill = document.getElementById(t.id);
+    pill.classList.remove('covered', 'partial', 'over');
+    if (total === 0) return;
+    if (t.daily >= total) pill.classList.add('covered');
+    else if (t.daily >= total * 0.5) pill.classList.add('partial');
+    else pill.classList.add('over');
+  });
+}
+
+function resetCalc() {
+  Object.keys(CALC_RATES).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = 0;
+  });
+  calcUpdate();
+}
+
+// ══════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════
+init();
+</script>
+
 </body>
 </html>
