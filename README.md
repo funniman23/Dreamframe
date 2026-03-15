@@ -24,7 +24,11 @@ Dreamframe is a zero-dependency, single-HTML-file playground for the [pollinatio
 
 ---
 
+<div align="center">
+
 ![Dreamframe showcase](showcase.gif)
+
+</div>
 
 ## Features
 
