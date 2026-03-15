@@ -35,8 +35,8 @@ Dreamframe is a zero-dependency, single-HTML-file playground for the [pollinatio
 
 ### Also included
 
-- ** Prompt Enhancer** — AI-rewrites your prompt via `openai-fast` for richer results
-- ** Random prompt** — 15 hand-picked cinematic prompts to spark ideas
+- **Prompt Enhancer** — AI-rewrites your prompt via `openai-fast` for richer results
+- **Random prompt** — 15 hand-picked cinematic prompts to spark ideas
 - **Style quick-tags** — one-click append: cinematic, anime, 3D render, watercolor, etc.
 - **Negative prompt** — collapsible negative prompt field
 - **Seed control** — lock seeds for reproducibility, shuffle for variety
