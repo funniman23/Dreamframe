@@ -41,7 +41,7 @@ Dreamframe is a zero-dependency, single-HTML-file playground for the [pollinatio
 - **Negative prompt** — collapsible negative prompt field
 - **Seed control** — lock seeds for reproducibility, shuffle for variety
 - **Session gallery** — every generation saved; lightbox preview, one-click download, reuse prompt
-- ** Pollen Cost Calculator** — live estimator across all media types with per-tier sufficiency indicators
+- **Pollen Cost Calculator** — live estimator across all media types with per-tier sufficiency indicators
 - **BYOP** — your `sk_` or `pk_` key stored in `sessionStorage` only, never transmitted elsewhere
 - **Zero dependencies** — one `.html` file, no build step, no npm, no framework
 
